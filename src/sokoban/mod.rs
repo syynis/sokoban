@@ -1,5 +1,10 @@
-use bevy::{ecs::system::SystemParam, prelude::*};
-use bevy_ecs_tilemap::tiles::TilePos;
+use std::ops::Add;
+
+use bevy::{ecs::system::SystemParam, prelude::*, reflect::TypePath, sprite::ColorMaterialPlugin};
+use bevy_ecs_tilemap::{
+    prelude::TilemapSize,
+    tiles::{TilePos, TileStorage},
+};
 use bevy_pile::{grid::Grid, tilemap::tile_to_world_pos};
 use leafwing_input_manager::prelude::*;
 
@@ -8,7 +13,9 @@ use self::{
     player::PlayerPlugin,
 };
 
+pub mod cube;
 pub mod history;
+pub mod momentum;
 pub mod player;
 
 pub struct SokobanPlugin;
@@ -22,14 +29,19 @@ impl Plugin for SokobanPlugin {
         ))
         .register_type::<Pos>()
         .register_type::<History<Pos>>()
+        .register_type::<SokobanBlock>()
+        .register_type::<CollisionMap>()
         .add_event::<SokobanEvent>()
         .add_systems(Startup, setup)
-        .add_systems(Update, handle_sokoban_actions.before(HandleHistoryEvents))
         .add_systems(
             Update,
-            handle_sokoban_events.run_if(on_event::<SokobanEvent>()),
+            (
+                init_collision_map,
+                handle_sokoban_actions.before(HandleHistoryEvents),
+                handle_sokoban_events.run_if(on_event::<SokobanEvent>()),
+            ),
         )
-        .add_systems(PostUpdate, copy_pos_to_transform);
+        .add_systems(PostUpdate, (copy_pos_to_transform, sync_collision_map));
     }
 }
 
@@ -71,6 +83,30 @@ fn handle_sokoban_actions(
 
 #[derive(Component, Default, Clone, Copy, Debug, PartialEq, Eq, Deref, DerefMut, Reflect)]
 pub struct Pos(pub TilePos);
+
+impl Pos {
+    pub fn new(x: u32, y: u32) -> Self {
+        Self(TilePos { x, y })
+    }
+
+    pub fn add_dir(&mut self, dir: Dir) {
+        let dir = IVec2::from(dir);
+        self.x = self.x.saturating_add_signed(dir.x);
+        self.y = self.y.saturating_add_signed(dir.y);
+    }
+}
+
+impl From<Pos> for IVec2 {
+    fn from(value: Pos) -> Self {
+        UVec2::from(*value).as_ivec2()
+    }
+}
+
+impl From<&Pos> for IVec2 {
+    fn from(value: &Pos) -> Self {
+        UVec2::from(**value).as_ivec2()
+    }
+}
 
 pub fn copy_pos_to_transform(mut query: Query<(&Pos, &mut Transform)>) {
     for (pos, mut transform) in query.iter_mut() {
@@ -114,21 +150,37 @@ impl<'w> SokobanEvents<'w> {
 }
 
 fn handle_sokoban_events(
+    names: Query<&Name>,
     mut sokoban_entities: Query<(Entity, &mut Pos, &SokobanBlock)>,
     mut sokoban_events: EventReader<SokobanEvent>,
+    tilemap: Query<&TilemapSize>,
+    collision: Res<CollisionMap>,
 ) {
+    let Some(tilemap) = tilemap.get_single().ok() else {
+        return;
+    };
     for ev in sokoban_events.iter() {
         let SokobanEvent::Move { entity, direction } = ev;
 
-        if let Some((entity, mut pos, block)) = sokoban_entities.get_mut(*entity).ok() {
-            let dir = IVec2::from(*direction);
-            pos.x = pos.x.saturating_add_signed(dir.x);
-            pos.y = pos.y.saturating_add_signed(dir.y);
+        if let Some((_, pos, _)) = sokoban_entities.get(*entity).ok() {
+            let push = collision.push_collision(IVec2::from(*pos), *direction);
+            let push_names: Vec<String> = push
+                .iter()
+                .map(|e| names.get(*e).unwrap().as_str().to_owned())
+                .collect();
+            bevy::log::info!("push {:?}", push_names);
+
+            for e in push.iter() {
+                sokoban_entities
+                    .get_component_mut::<Pos>(*e)
+                    .expect("Should be valid")
+                    .add_dir(*direction);
+            }
         }
     }
 }
 
-#[derive(Debug, Copy, Clone, Component)]
+#[derive(Debug, Copy, Clone, Component, Reflect)]
 pub enum SokobanBlock {
     Static,
     Dynamic,
@@ -144,26 +196,66 @@ pub struct PushEvent {
     pub pushed: Vec<Entity>,
 }
 
-#[derive(Resource)]
+#[derive(Resource, Reflect)]
+#[reflect(Resource)]
 pub struct CollisionMap {
     map: Grid<Option<(Entity, SokobanBlock)>>,
 }
 
+impl Default for CollisionMap {
+    fn default() -> Self {
+        Self {
+            map: Grid::new(IVec2::new(0, 0), None),
+        }
+    }
+}
+
+fn init_collision_map(
+    mut cmds: Commands,
+    tilemap: Query<&TilemapSize, Added<TileStorage>>,
+    sokoban_entities: Query<(Entity, &Pos, &SokobanBlock)>,
+) {
+    let Some(size) = tilemap.get_single().ok() else {
+        return;
+    };
+    bevy::log::info!("Initialized collision map");
+    let mut map = Grid::new(IVec2::new(size.x as i32, size.y as i32), None);
+    for (entity, pos, block) in sokoban_entities.iter() {
+        let pos = IVec2::from(pos);
+        map.set(pos, Some((entity, *block)));
+    }
+    cmds.insert_resource(CollisionMap { map });
+}
+
+// TODO dont rebuild but instead only change moved entities
+fn sync_collision_map(
+    mut collision: ResMut<CollisionMap>,
+    sokoban_entities: Query<(Entity, &Pos, &SokobanBlock)>,
+) {
+    collision.map.iter_mut().for_each(|(_, elem)| {
+        elem.take();
+    });
+    for (entity, pos, block) in sokoban_entities.iter() {
+        collision.map.set(IVec2::from(pos), Some((entity, *block)));
+    }
+}
+
 impl CollisionMap {
-    fn push_collision_map_entry(&mut self, pusher_coords: IVec2, direction: Dir) {
-        let Some(e) = self.map.get_mut(pusher_coords) else {
-            return;
+    fn push_collision(&self, pusher_pos: IVec2, direction: Dir) -> Vec<Entity> {
+        let Some(Some((pusher, _))) = self.map.get(pusher_pos) else {
+            return Vec::new();
         };
 
-        match e {
-            Some((pusher, SokobanBlock::Dynamic)) => {
-                // pusher is dynamic, so we try to push
-                let destination = pusher_coords + IVec2::from(direction);
-                let val = e.take();
-                self.map.set(destination, val);
-            }
-            Some((_, SokobanBlock::Static)) => {}
-            None => {}
+        let move_in_dir = |pos| -> IVec2 { pos + IVec2::from(direction) };
+        let mut to_push = Vec::new();
+        to_push.push(*pusher);
+        let mut current_pos = pusher_pos;
+        let mut dest = move_in_dir(current_pos);
+        while let Some(Some((entity, SokobanBlock::Dynamic))) = self.map.get(dest) {
+            to_push.push(*entity);
+            current_pos = dest;
+            dest = move_in_dir(current_pos);
         }
+        to_push
     }
 }

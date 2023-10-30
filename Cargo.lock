@@ -817,7 +817,7 @@ dependencies = [
 [[package]]
 name = "bevy_pile"
 version = "0.1.0"
-source = "git+https://github.com/syynis/bevy_pile?branch=main#df33c3f669b9d3f17b1a9387cf2e4da2162e8eb7"
+source = "git+https://github.com/syynis/bevy_pile?branch=main#b5ba56e5a8965928a13c322fc637ada40899f182"
 dependencies = [
  "anyhow",
  "bevy",

@@ -1,11 +1,10 @@
-use bevy::prelude::*;
-use bevy_ecs_tilemap::tiles::TilePos;
+use bevy::{ecs::system::Command, prelude::*};
 use bevy_pile::tilemap::tile_to_world_pos;
 use leafwing_input_manager::prelude::*;
 
 use super::{
     history::{HandleHistoryEvents, History, HistoryEvent},
-    Dir, Pos, SokobanBlock, SokobanEvents,
+    Dir, Pos, Pusher, SokobanBlock, SokobanEvents,
 };
 
 pub struct PlayerPlugin;
@@ -29,6 +28,32 @@ pub enum PlayerActions {
     Left,
 }
 
+pub struct SpawnPlayer {
+    pub pos: Pos,
+}
+
+impl Command for SpawnPlayer {
+    fn apply(self, world: &mut World) {
+        world.spawn((
+            Name::new("Player"),
+            Player,
+            self.pos,
+            History::<Pos>::default(),
+            SokobanBlock::Dynamic,
+            Pusher,
+            SpriteBundle {
+                sprite: Sprite {
+                    color: Color::WHITE,
+                    custom_size: Some(Vec2 { x: 16., y: 16. }),
+                    ..default()
+                },
+                transform: Transform::from_translation(tile_to_world_pos(&self.pos).extend(1.)),
+                ..default()
+            },
+        ));
+    }
+}
+
 fn setup(mut cmds: Commands) {
     cmds.spawn((
         (InputManagerBundle::<PlayerActions> {
@@ -36,24 +61,6 @@ fn setup(mut cmds: Commands) {
             ..default()
         },),
         Name::new("PlayerActions"),
-    ));
-    cmds.spawn((
-        Name::new("Player"),
-        Player,
-        Pos::default(),
-        History::<Pos>::default(),
-        SokobanBlock::Dynamic,
-        SpriteBundle {
-            sprite: Sprite {
-                color: Color::WHITE,
-                custom_size: Some(Vec2 { x: 16., y: 16. }),
-                ..default()
-            },
-            transform: Transform::from_translation(
-                tile_to_world_pos(&TilePos::default()).extend(1.),
-            ),
-            ..default()
-        },
     ));
 }
 

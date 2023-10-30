@@ -7,7 +7,7 @@ use bevy_ecs_tilemap::{
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_pancam::{PanCam, PanCamPlugin};
 use bevy_pile::{cursor::WorldCursorPlugin, tilemap::TileCursorPlugin};
-use sokoban::SokobanPlugin;
+use sokoban::{cube::SpawnCube, player::SpawnPlayer, Pos, SokobanPlugin};
 
 pub mod sokoban;
 
@@ -37,16 +37,21 @@ fn setup(mut cmds: Commands, asset_server: Res<AssetServer>) {
     ));
 
     let map = vec![
-        vec![1, 1, 1, 1, 1],
-        vec![1, 0, 0, 0, 1],
-        vec![1, 0, 0, 0, 1],
-        vec![1, 0, 0, 0, 1],
-        vec![1, 1, 1, 1, 1],
+        vec![1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        vec![1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
     ];
 
     let tiles: Handle<Image> = asset_server.load("tiles.png");
 
-    let size = TilemapSize::from(UVec2::new(16, 16));
+    let size = TilemapSize::from(UVec2::splat(10));
     let mut storage = TileStorage::empty(size);
 
     let tilemap_entity = cmds.spawn_empty().id();
@@ -88,4 +93,15 @@ fn setup(mut cmds: Commands, asset_server: Res<AssetServer>) {
         },
         Name::new("Level"),
     ));
+
+    cmds.add(SpawnPlayer {
+        pos: Pos::new(0, 0),
+    });
+
+    cmds.add(SpawnCube {
+        pos: Pos::new(1, 1),
+    });
+    cmds.add(SpawnCube {
+        pos: Pos::new(2, 2),
+    });
 }
