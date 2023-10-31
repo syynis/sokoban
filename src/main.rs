@@ -37,21 +37,31 @@ fn setup(mut cmds: Commands, asset_server: Res<AssetServer>) {
     ));
 
     let map = vec![
-        vec![1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        vec![1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        vec![1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        vec![1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        vec![1, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        vec![1, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        vec![1, 0, 0, 2, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        vec![1, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        vec![1, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        vec![1, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 1],
+        vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        vec![1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
     ];
 
     let tiles: Handle<Image> = asset_server.load("tiles.png");
 
-    let size = TilemapSize::from(UVec2::splat(10));
+    let size = TilemapSize::from(UVec2::splat(map.len() as u32));
     let mut storage = TileStorage::empty(size);
 
     let tilemap_entity = cmds.spawn_empty().id();
@@ -61,12 +71,13 @@ fn setup(mut cmds: Commands, asset_server: Res<AssetServer>) {
                 x: x as u32,
                 y: y as u32,
             };
+            let tile_idx = if *tile == 1 { 1 } else { 0 };
             let tile_entity = cmds
                 .spawn((
                     Name::new("Tile"),
                     TileBundle {
                         position: pos,
-                        texture_index: TileTextureIndex(*tile),
+                        texture_index: TileTextureIndex(tile_idx),
                         tilemap_id: TilemapId(tilemap_entity),
                         ..default()
                     },
@@ -75,6 +86,10 @@ fn setup(mut cmds: Commands, asset_server: Res<AssetServer>) {
             if *tile == 1 {
                 cmds.entity(tile_entity)
                     .insert((SokobanBlock::Static, Pos(pos)));
+            }
+
+            if *tile == 2 {
+                cmds.add(SpawnCube { pos: Pos(pos) });
             }
             storage.set(&pos, tile_entity);
         }
@@ -100,12 +115,5 @@ fn setup(mut cmds: Commands, asset_server: Res<AssetServer>) {
 
     cmds.add(SpawnPlayer {
         pos: Pos::new(2, 2),
-    });
-
-    cmds.add(SpawnCube {
-        pos: Pos::new(3, 3),
-    });
-    cmds.add(SpawnCube {
-        pos: Pos::new(3, 4),
     });
 }

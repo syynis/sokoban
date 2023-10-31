@@ -6,8 +6,11 @@ use bevy_ecs_tilemap::{
 use bevy_pile::{grid::Grid, tilemap::tile_to_world_pos};
 use leafwing_input_manager::prelude::*;
 
+use crate::sokoban::momentum::Momentum;
+
 use self::{
     history::{HandleHistoryEvents, History, HistoryEvent, HistoryPlugin},
+    momentum::MomentumPlugin,
     player::PlayerPlugin,
 };
 
@@ -24,17 +27,18 @@ impl Plugin for SokobanPlugin {
             PlayerPlugin,
             HistoryPlugin::<Pos>::default(),
             InputManagerPlugin::<SokobanActions>::default(),
+            MomentumPlugin,
         ))
         .register_type::<Pos>()
+        .register_type::<Dir>()
         .register_type::<History<Pos>>()
         .register_type::<SokobanBlock>()
         .register_type::<CollisionMap>()
         .add_event::<SokobanEvent>()
-        .add_systems(Startup, setup)
+        .add_systems(Startup, (setup, apply_deferred, init_collision_map).chain())
         .add_systems(
             Update,
             (
-                init_collision_map,
                 handle_sokoban_actions.before(HandleHistoryEvents),
                 handle_sokoban_events.run_if(on_event::<SokobanEvent>()),
             ),
@@ -112,7 +116,7 @@ pub fn copy_pos_to_transform(mut query: Query<(&Pos, &mut Transform)>) {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Reflect)]
 pub enum Dir {
     Up,
     Right,
@@ -134,6 +138,7 @@ impl From<Dir> for IVec2 {
 #[derive(Debug, Clone, Event)]
 pub enum SokobanEvent {
     Move { entity: Entity, direction: Dir },
+    Momentum { entity: Entity, direction: Dir },
 }
 
 #[derive(SystemParam)]
@@ -148,31 +153,77 @@ impl<'w> SokobanEvents<'w> {
 }
 
 fn handle_sokoban_events(
-    names: Query<&Name>,
-    mut sokoban_entities: Query<(Entity, &mut Pos, &SokobanBlock)>,
+    mut sokoban_entities: Query<(&mut Pos, &mut Momentum)>,
     mut sokoban_events: EventReader<SokobanEvent>,
-    tilemap: Query<&TilemapSize>,
     collision: Res<CollisionMap>,
+    names: Query<&Name>,
 ) {
-    let Some(tilemap) = tilemap.get_single().ok() else {
-        return;
-    };
     for ev in sokoban_events.iter() {
-        let SokobanEvent::Move { entity, direction } = ev;
+        match ev {
+            SokobanEvent::Move { entity, direction } => {
+                if let Some((pos, _)) = sokoban_entities.get(*entity).ok() {
+                    let push = collision.push_collision(IVec2::from(*pos), *direction);
+                    let CollisionResult::Push(push) = push else {
+                        continue;
+                    };
+                    bevy::log::info!(
+                        "push {:?}",
+                        push.iter()
+                            .map(|e| names.get(*e).cloned().unwrap_or(Name::default()))
+                            .collect::<Vec<Name>>()
+                    );
 
-        if let Some((_, pos, _)) = sokoban_entities.get(*entity).ok() {
-            let push = collision.push_collision(IVec2::from(*pos), *direction);
-            let push_names: Vec<String> = push
-                .iter()
-                .map(|e| names.get(*e).unwrap().as_str().to_owned())
-                .collect();
-            bevy::log::info!("push {:?}", push_names);
+                    for (idx, e) in push.iter().enumerate() {
+                        sokoban_entities
+                            .get_component_mut::<Pos>(*e)
+                            .expect("Should be valid")
+                            .add_dir(*direction);
+                        if idx != 0 {
+                            sokoban_entities
+                                .get_component_mut::<Momentum>(*e)
+                                .expect("Should be valid")
+                                .0
+                                .replace(*direction);
+                        }
+                    }
+                }
+            }
+            SokobanEvent::Momentum { entity, direction } => {
+                if let Some((pos, momentum)) = sokoban_entities.get(*entity).ok() {
+                    let Some(dir) = **momentum else { continue };
+                    let push = collision.push_collision(IVec2::from(*pos), *direction);
+                    match push {
+                        CollisionResult::Push(push) => {
+                            let mut latest_without_momentum = None;
+                            for e in push.iter() {
+                                if sokoban_entities
+                                    .get_component::<Momentum>(*e)
+                                    .expect("Should be valid")
+                                    .is_none()
+                                {
+                                    latest_without_momentum.replace((*e, dir));
+                                }
+                            }
 
-            for e in push.iter() {
-                sokoban_entities
-                    .get_component_mut::<Pos>(*e)
-                    .expect("Should be valid")
-                    .add_dir(*direction);
+                            if let Some((transfer, momentum)) = latest_without_momentum {
+                                let [(_, mut tm), (_, mut em)] = sokoban_entities
+                                    .get_many_mut([transfer, *entity])
+                                    .expect("Should be ok");
+                                tm.replace(momentum);
+                                em.take();
+                            }
+                        }
+                        CollisionResult::Wall => {
+                            sokoban_entities
+                                .get_component_mut::<Momentum>(*entity)
+                                .expect("Should be ok")
+                                .take();
+                        }
+                        CollisionResult::OutOfBounds => {
+                            bevy::log::warn!("Entity {:?} out of bounds", *entity);
+                        }
+                    }
+                }
             }
         }
     }
@@ -238,10 +289,16 @@ fn sync_collision_map(
     }
 }
 
+enum CollisionResult {
+    Push(Vec<Entity>),
+    Wall,
+    OutOfBounds,
+}
+
 impl CollisionMap {
-    fn push_collision(&self, pusher_pos: IVec2, direction: Dir) -> Vec<Entity> {
+    fn push_collision(&self, pusher_pos: IVec2, direction: Dir) -> CollisionResult {
         let Some(Some((pusher, _))) = self.map.get(pusher_pos) else {
-            return Vec::new();
+            return CollisionResult::OutOfBounds;
         };
 
         let move_in_dir = |pos| -> IVec2 { pos + IVec2::from(direction) };
@@ -253,8 +310,7 @@ impl CollisionMap {
             match dest_entity {
                 Some((pushed, block)) => match block {
                     SokobanBlock::Static => {
-                        moving_entities.clear();
-                        break;
+                        return CollisionResult::Wall;
                     }
                     SokobanBlock::Dynamic => {
                         moving_entities.push(*pusher);
@@ -269,6 +325,6 @@ impl CollisionMap {
                 }
             }
         }
-        moving_entities
+        CollisionResult::Push(moving_entities)
     }
 }

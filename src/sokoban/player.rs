@@ -4,6 +4,7 @@ use leafwing_input_manager::prelude::*;
 
 use super::{
     history::{HandleHistoryEvents, History, HistoryEvent},
+    momentum::Momentum,
     Dir, Pos, Pusher, SokobanBlock, SokobanEvents,
 };
 
@@ -50,6 +51,7 @@ impl Command for SpawnPlayer {
                 transform: Transform::from_translation(tile_to_world_pos(&self.pos).extend(1.)),
                 ..default()
             },
+            Momentum::default(),
         ));
     }
 }

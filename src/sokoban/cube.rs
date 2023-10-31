@@ -1,7 +1,7 @@
 use bevy::{ecs::system::Command, prelude::*};
 use bevy_pile::tilemap::tile_to_world_pos;
 
-use super::{history::History, Pos, SokobanBlock};
+use super::{history::History, momentum::Momentum, Pos, SokobanBlock};
 
 #[derive(Component)]
 pub struct Cube;
@@ -27,6 +27,7 @@ impl Command for SpawnCube {
                 transform: Transform::from_translation(tile_to_world_pos(&self.pos).extend(1.)),
                 ..default()
             },
+            Momentum::default(),
         ));
     }
 }
