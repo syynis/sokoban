@@ -174,16 +174,17 @@ fn handle_sokoban_events(
                     );
 
                     for (idx, e) in push.iter().enumerate() {
-                        sokoban_entities
-                            .get_component_mut::<Pos>(*e)
-                            .expect("Should be valid")
-                            .add_dir(*direction);
                         if idx != 0 {
                             sokoban_entities
                                 .get_component_mut::<Momentum>(*e)
                                 .expect("Should be valid")
                                 .0
                                 .replace(*direction);
+                        } else {
+                            sokoban_entities
+                                .get_component_mut::<Pos>(*e)
+                                .expect("Should be valid")
+                                .add_dir(*direction);
                         }
                     }
                 }
