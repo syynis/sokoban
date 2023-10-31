@@ -1,6 +1,4 @@
-use std::ops::Add;
-
-use bevy::{ecs::system::SystemParam, prelude::*, reflect::TypePath, sprite::ColorMaterialPlugin};
+use bevy::{ecs::system::SystemParam, prelude::*};
 use bevy_ecs_tilemap::{
     prelude::TilemapSize,
     tiles::{TilePos, TileStorage},
@@ -247,15 +245,30 @@ impl CollisionMap {
         };
 
         let move_in_dir = |pos| -> IVec2 { pos + IVec2::from(direction) };
-        let mut to_push = Vec::new();
-        to_push.push(*pusher);
+        let mut moving_entities = Vec::new();
         let mut current_pos = pusher_pos;
         let mut dest = move_in_dir(current_pos);
-        while let Some(Some((entity, SokobanBlock::Dynamic))) = self.map.get(dest) {
-            to_push.push(*entity);
-            current_pos = dest;
-            dest = move_in_dir(current_pos);
+        let mut pusher = pusher;
+        while let Some(dest_entity) = self.map.get(dest) {
+            match dest_entity {
+                Some((pushed, block)) => match block {
+                    SokobanBlock::Static => {
+                        moving_entities.clear();
+                        break;
+                    }
+                    SokobanBlock::Dynamic => {
+                        moving_entities.push(*pusher);
+                        pusher = pushed;
+                        current_pos = dest;
+                        dest = move_in_dir(current_pos);
+                    }
+                },
+                None => {
+                    moving_entities.push(*pusher);
+                    break;
+                }
+            }
         }
-        to_push
+        moving_entities
     }
 }

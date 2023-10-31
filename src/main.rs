@@ -7,7 +7,7 @@ use bevy_ecs_tilemap::{
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_pancam::{PanCam, PanCamPlugin};
 use bevy_pile::{cursor::WorldCursorPlugin, tilemap::TileCursorPlugin};
-use sokoban::{cube::SpawnCube, player::SpawnPlayer, Pos, SokobanPlugin};
+use sokoban::{cube::SpawnCube, player::SpawnPlayer, Pos, SokobanBlock, SokobanPlugin};
 
 pub mod sokoban;
 
@@ -72,6 +72,10 @@ fn setup(mut cmds: Commands, asset_server: Res<AssetServer>) {
                     },
                 ))
                 .id();
+            if *tile == 1 {
+                cmds.entity(tile_entity)
+                    .insert((SokobanBlock::Static, Pos(pos)));
+            }
             storage.set(&pos, tile_entity);
         }
     }
@@ -95,13 +99,13 @@ fn setup(mut cmds: Commands, asset_server: Res<AssetServer>) {
     ));
 
     cmds.add(SpawnPlayer {
-        pos: Pos::new(0, 0),
+        pos: Pos::new(2, 2),
     });
 
     cmds.add(SpawnCube {
-        pos: Pos::new(1, 1),
+        pos: Pos::new(3, 3),
     });
     cmds.add(SpawnCube {
-        pos: Pos::new(2, 2),
+        pos: Pos::new(3, 4),
     });
 }
