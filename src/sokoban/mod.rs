@@ -1,4 +1,4 @@
-use bevy::{ecs::system::SystemParam, prelude::*};
+use bevy::{ecs::system::SystemParam, log, prelude::*};
 use bevy_ecs_tilemap::{
     prelude::TilemapSize,
     tiles::{TilePos, TileStorage},
@@ -9,12 +9,14 @@ use leafwing_input_manager::prelude::*;
 use crate::sokoban::momentum::Momentum;
 
 use self::{
+    goal::GoalPlugin,
     history::{HandleHistoryEvents, History, HistoryEvent, HistoryPlugin},
     momentum::MomentumPlugin,
     player::PlayerPlugin,
 };
 
 pub mod cube;
+pub mod goal;
 pub mod history;
 pub mod momentum;
 pub mod player;
@@ -28,7 +30,9 @@ impl Plugin for SokobanPlugin {
             HistoryPlugin::<Pos>::default(),
             InputManagerPlugin::<SokobanActions>::default(),
             MomentumPlugin,
+            GoalPlugin,
         ))
+        .add_state::<GameState>()
         .register_type::<Pos>()
         .register_type::<Dir>()
         .register_type::<History<Pos>>()
@@ -39,16 +43,51 @@ impl Plugin for SokobanPlugin {
         .add_systems(
             Update,
             (
-                handle_sokoban_actions.before(HandleHistoryEvents),
-                handle_sokoban_events.run_if(on_event::<SokobanEvent>()),
+                // General
+                (log_state_change),
+                // Play
+                (
+                    handle_sokoban_actions.before(HandleHistoryEvents),
+                    handle_sokoban_events.run_if(on_event::<SokobanEvent>()),
+                )
+                    .run_if(in_state(GameState::Play)),
+                // Level Select
+                (play).run_if(in_state(GameState::LevelSelect)),
             ),
         )
         .add_systems(PostUpdate, (copy_pos_to_transform, sync_collision_map));
     }
 }
 
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
+pub enum GameState {
+    #[default]
+    LevelSelect,
+    Play,
+}
+
+fn play(
+    mut next_state: ResMut<NextState<GameState>>,
+    actions: Query<&ActionState<SokobanActions>>,
+) {
+    let Ok(actions) = actions.get_single() else {
+        return;
+    };
+
+    if actions.just_pressed(SokobanActions::Play) {
+        next_state.set(GameState::Play)
+    }
+}
+
+fn log_state_change(state: Res<State<GameState>>) {
+    if state.is_changed() {
+        log::info!("{:?}", state);
+    }
+}
+
 #[derive(Actionlike, Clone, Copy, Hash, Debug, PartialEq, Eq, Reflect)]
 pub enum SokobanActions {
+    Play,
     Rewind,
 }
 
@@ -57,6 +96,7 @@ fn sokoban_actions() -> InputMap<SokobanActions> {
     let mut input_map = InputMap::default();
 
     input_map.insert(KeyCode::U, Rewind);
+    input_map.insert(KeyCode::P, Play);
 
     input_map
 }
@@ -156,7 +196,6 @@ fn handle_sokoban_events(
     mut sokoban_entities: Query<(&mut Pos, &mut Momentum)>,
     mut sokoban_events: EventReader<SokobanEvent>,
     collision: Res<CollisionMap>,
-    names: Query<&Name>,
 ) {
     for ev in sokoban_events.iter() {
         match ev {
@@ -166,12 +205,6 @@ fn handle_sokoban_events(
                     let CollisionResult::Push(push) = push else {
                         continue;
                     };
-                    bevy::log::info!(
-                        "push {:?}",
-                        push.iter()
-                            .map(|e| names.get(*e).cloned().unwrap_or(Name::default()))
-                            .collect::<Vec<Name>>()
-                    );
 
                     for (idx, e) in push.iter().enumerate() {
                         if idx != 0 {
@@ -221,7 +254,7 @@ fn handle_sokoban_events(
                                 .take();
                         }
                         CollisionResult::OutOfBounds => {
-                            bevy::log::warn!("Entity {:?} out of bounds", *entity);
+                            log::warn!("Entity {:?} out of bounds", *entity);
                         }
                     }
                 }
@@ -268,7 +301,7 @@ fn init_collision_map(
     let Some(size) = tilemap.get_single().ok() else {
         return;
     };
-    bevy::log::info!("Initialized collision map");
+    log::info!("Initialized collision map");
     let mut map = Grid::new(IVec2::new(size.x as i32, size.y as i32), None);
     for (entity, pos, block) in sokoban_entities.iter() {
         let pos = IVec2::from(pos);
