@@ -12,6 +12,7 @@ use self::{
     momentum::MomentumPlugin,
     player::PlayerPlugin,
     sand::SandPlugin,
+    void::VoidPlugin,
 };
 
 pub mod collision;
@@ -21,6 +22,7 @@ pub mod history;
 pub mod momentum;
 pub mod player;
 pub mod sand;
+pub mod void;
 
 pub struct SokobanPlugin;
 
@@ -34,6 +36,7 @@ impl Plugin for SokobanPlugin {
             GoalPlugin,
             CollisionPlugin,
             SandPlugin,
+            VoidPlugin,
         ))
         .add_state::<GameState>()
         .register_type::<Pos>()
@@ -265,7 +268,7 @@ fn handle_sokoban_events(
     }
 }
 
-#[derive(Debug, Copy, Clone, Component, Reflect)]
+#[derive(Debug, Copy, Clone, Component, Reflect, PartialEq)]
 pub enum SokobanBlock {
     Static,
     Dynamic,
