@@ -30,7 +30,7 @@ fn handle_momentum(
     }
 }
 
-fn apply_momentum(mut momentum_query: Query<(&mut Pos, &Momentum)>) {
+pub fn apply_momentum(mut momentum_query: Query<(&mut Pos, &Momentum)>) {
     for (mut pos, momentum) in momentum_query.iter_mut() {
         if let Some(dir) = **momentum {
             pos.add_dir(dir);

@@ -11,6 +11,7 @@ use self::{
     history::{HandleHistoryEvents, History, HistoryEvent, HistoryPlugin},
     momentum::MomentumPlugin,
     player::PlayerPlugin,
+    sand::SandPlugin,
 };
 
 pub mod collision;
@@ -19,6 +20,7 @@ pub mod goal;
 pub mod history;
 pub mod momentum;
 pub mod player;
+pub mod sand;
 
 pub struct SokobanPlugin;
 
@@ -31,6 +33,7 @@ impl Plugin for SokobanPlugin {
             MomentumPlugin,
             GoalPlugin,
             CollisionPlugin,
+            SandPlugin,
         ))
         .add_state::<GameState>()
         .register_type::<Pos>()

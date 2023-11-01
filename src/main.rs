@@ -1,14 +1,15 @@
 use bevy::prelude::*;
 use bevy_ecs_tilemap::{
     prelude::{TilemapId, TilemapSize, TilemapTexture, TilemapTileSize, TilemapType},
-    tiles::{TileBundle, TilePos, TileStorage, TileTextureIndex},
+    tiles::{TileBundle, TileColor, TilePos, TileStorage, TileTextureIndex},
     TilemapBundle,
 };
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_pancam::{PanCam, PanCamPlugin};
 use bevy_pile::{cursor::WorldCursorPlugin, tilemap::TileCursorPlugin};
 use sokoban::{
-    cube::SpawnCube, goal::SpawnGoal, player::SpawnPlayer, Pos, SokobanBlock, SokobanPlugin,
+    cube::SpawnCube, goal::SpawnGoal, player::SpawnPlayer, sand::Sand, Pos, SokobanBlock,
+    SokobanPlugin,
 };
 
 pub mod sokoban;
@@ -47,14 +48,14 @@ fn setup(mut cmds: Commands, asset_server: Res<AssetServer>) {
         vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
         vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
         vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        vec![1, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        vec![1, 0, 0, 2, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
         vec![1, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
         vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
         vec![1, 0, 0, 2, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
         vec![1, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
         vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
         vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        vec![1, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
         vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
         vec![1, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
         vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
@@ -96,6 +97,11 @@ fn setup(mut cmds: Commands, asset_server: Res<AssetServer>) {
 
             if *tile == 3 {
                 cmds.add(SpawnGoal(Pos(pos)));
+            }
+
+            if *tile == 4 {
+                cmds.entity(tile_entity)
+                    .insert((Sand, Pos(pos), TileColor(Color::YELLOW)));
             }
             storage.set(&pos, tile_entity);
         }
