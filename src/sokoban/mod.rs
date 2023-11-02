@@ -1,5 +1,5 @@
 use bevy::{ecs::system::SystemParam, log, prelude::*};
-use bevy_ecs_tilemap::tiles::TilePos;
+use bevy_ecs_tilemap::{prelude::TilemapGridSize, tiles::TilePos};
 use bevy_pile::tilemap::tile_to_world_pos;
 use leafwing_input_manager::prelude::*;
 
@@ -15,8 +15,8 @@ use self::{
     void::VoidPlugin,
 };
 
+pub mod ball;
 pub mod collision;
-pub mod cube;
 pub mod goal;
 pub mod history;
 pub mod momentum;
@@ -157,7 +157,8 @@ impl From<&Pos> for IVec2 {
 
 pub fn copy_pos_to_transform(mut query: Query<(&Pos, &mut Transform)>) {
     for (pos, mut transform) in query.iter_mut() {
-        transform.translation = tile_to_world_pos(pos).extend(transform.translation.z);
+        transform.translation = tile_to_world_pos(pos, &TilemapGridSize { x: 8., y: 8. })
+            .extend(transform.translation.z);
     }
 }
 

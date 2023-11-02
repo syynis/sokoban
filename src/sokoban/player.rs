@@ -1,4 +1,5 @@
 use bevy::{ecs::system::Command, prelude::*};
+use bevy_ecs_tilemap::prelude::TilemapGridSize;
 use bevy_pile::tilemap::tile_to_world_pos;
 use leafwing_input_manager::prelude::*;
 
@@ -35,6 +36,8 @@ pub struct SpawnPlayer {
 
 impl Command for SpawnPlayer {
     fn apply(self, world: &mut World) {
+        let asset_server = world.resource::<AssetServer>();
+        let player_handle: Handle<Image> = asset_server.load("player.png");
         world.spawn((
             Name::new("Player"),
             Player,
@@ -43,12 +46,10 @@ impl Command for SpawnPlayer {
             SokobanBlock::Dynamic,
             Pusher,
             SpriteBundle {
-                sprite: Sprite {
-                    color: Color::WHITE,
-                    custom_size: Some(Vec2 { x: 16., y: 16. }),
-                    ..default()
-                },
-                transform: Transform::from_translation(tile_to_world_pos(&self.pos).extend(1.)),
+                texture: player_handle,
+                transform: Transform::from_translation(
+                    tile_to_world_pos(&self.pos, &TilemapGridSize { x: 8., y: 8. }).extend(1.),
+                ),
                 ..default()
             },
             Momentum::default(),

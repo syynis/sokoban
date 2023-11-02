@@ -8,8 +8,8 @@ use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_pancam::{PanCam, PanCamPlugin};
 use bevy_pile::{cursor::WorldCursorPlugin, tilemap::TileCursorPlugin};
 use sokoban::{
-    cube::SpawnCube, goal::SpawnGoal, player::SpawnPlayer, sand::Sand, void::Void, Pos,
-    SokobanBlock, SokobanPlugin,
+    ball::SpawnBall, goal::Goal, player::SpawnPlayer, sand::Sand, void::Void, Pos, SokobanBlock,
+    SokobanPlugin,
 };
 
 pub mod sokoban;
@@ -55,7 +55,7 @@ fn setup(mut cmds: Commands, asset_server: Res<AssetServer>) {
         vec![1, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
         vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
         vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        vec![1, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        vec![1, 0, 0, 4, 0, 2, 2, 2, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 1],
         vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
         vec![1, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
         vec![1, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
@@ -74,7 +74,14 @@ fn setup(mut cmds: Commands, asset_server: Res<AssetServer>) {
                 x: x as u32,
                 y: y as u32,
             };
-            let tile_idx = if *tile == 1 { 1 } else { 0 };
+            let tile_idx = match *tile {
+                0 => 0,
+                1 => 1,
+                3 => 4,
+                4 => 2,
+                5 => 3,
+                _ => 0,
+            };
             let tile_entity = cmds
                 .spawn((
                     Name::new("Tile"),
@@ -92,11 +99,11 @@ fn setup(mut cmds: Commands, asset_server: Res<AssetServer>) {
             }
 
             if *tile == 2 {
-                cmds.add(SpawnCube { pos: Pos(pos) });
+                cmds.add(SpawnBall { pos: Pos(pos) });
             }
 
             if *tile == 3 {
-                cmds.add(SpawnGoal(Pos(pos)));
+                cmds.entity(tile_entity).insert((Goal, Pos(pos)));
             }
 
             if *tile == 4 {
@@ -115,7 +122,7 @@ fn setup(mut cmds: Commands, asset_server: Res<AssetServer>) {
         }
     }
 
-    let tile_size = TilemapTileSize::from(Vec2::splat(16.));
+    let tile_size = TilemapTileSize::from(Vec2::splat(8.));
     let grid_size = tile_size.into();
     let map_type = TilemapType::Square;
 
