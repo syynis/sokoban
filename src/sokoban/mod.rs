@@ -1,4 +1,8 @@
-use bevy::{ecs::system::SystemParam, log, prelude::*};
+use bevy::{
+    ecs::{schedule::ScheduleLabel, system::SystemParam},
+    log,
+    prelude::*,
+};
 use bevy_ecs_tilemap::{prelude::TilemapGridSize, tiles::TilePos};
 use bevy_pile::tilemap::tile_to_world_pos;
 use leafwing_input_manager::prelude::*;
@@ -52,7 +56,7 @@ impl Plugin for SokobanPlugin {
                 (log_state_change),
                 // Play
                 (
-                    handle_sokoban_actions.before(HandleHistoryEvents),
+                    handle_sokoban_actions.after(HandleHistoryEvents),
                     handle_sokoban_events.run_if(on_event::<SokobanEvent>()),
                 )
                     .run_if(in_state(GameState::Play)),
@@ -64,10 +68,19 @@ impl Plugin for SokobanPlugin {
     }
 }
 
+#[derive(ScheduleLabel, Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct MovementSchedule;
+
+#[derive(SystemSet, Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum MovementSet {
+    Step,
+    Sync,
+}
+
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
 pub enum GameState {
-    #[default]
     LevelSelect,
+    #[default]
     Play,
 }
 
@@ -184,7 +197,6 @@ impl From<Dir> for IVec2 {
 #[derive(Debug, Clone, Event)]
 pub enum SokobanEvent {
     Move { entity: Entity, direction: Dir },
-    Momentum { entity: Entity, direction: Dir },
 }
 
 #[derive(SystemParam)]
@@ -204,67 +216,21 @@ fn handle_sokoban_events(
     collision: Res<CollisionMap>,
 ) {
     for ev in sokoban_events.iter() {
-        match ev {
-            SokobanEvent::Move { entity, direction } => {
-                if let Some((pos, _)) = sokoban_entities.get(*entity).ok() {
-                    let push = collision.push_collision(IVec2::from(*pos), *direction);
-                    let CollisionResult::Push(push) = push else {
-                        continue;
-                    };
-
-                    for (idx, e) in push.iter().enumerate() {
-                        if idx != 0 {
-                            sokoban_entities
-                                .get_component_mut::<Momentum>(*e)
-                                .expect("Should be valid")
-                                .0
-                                .replace(*direction);
-                        } else {
-                            sokoban_entities
-                                .get_component_mut::<Pos>(*e)
-                                .expect("Should be valid")
-                                .add_dir(*direction);
-                        }
-                    }
+        let SokobanEvent::Move { entity, direction } = ev;
+        if let Some((pos, _)) = sokoban_entities.get(*entity).ok() {
+            let push = collision.push_collision(IVec2::from(*pos), *direction);
+            if let CollisionResult::Push(push) = push {
+                sokoban_entities
+                    .get_component_mut::<Pos>(*entity)
+                    .expect("Player exists")
+                    .add_dir(*direction);
+                for e in push.iter().skip(1) {
+                    sokoban_entities
+                        .get_component_mut::<Momentum>(*e)
+                        .expect("Dynamic objects have a momentum component")
+                        .replace(*direction);
                 }
-            }
-            SokobanEvent::Momentum { entity, direction } => {
-                if let Some((pos, momentum)) = sokoban_entities.get(*entity).ok() {
-                    let Some(dir) = **momentum else { continue };
-                    let push = collision.push_collision(IVec2::from(*pos), *direction);
-                    match push {
-                        CollisionResult::Push(push) => {
-                            let mut latest_without_momentum = None;
-                            for e in push.iter() {
-                                if sokoban_entities
-                                    .get_component::<Momentum>(*e)
-                                    .expect("Should be valid")
-                                    .is_none()
-                                {
-                                    latest_without_momentum.replace((*e, dir));
-                                }
-                            }
-
-                            if let Some((transfer, momentum)) = latest_without_momentum {
-                                let [(_, mut tm), (_, mut em)] = sokoban_entities
-                                    .get_many_mut([transfer, *entity])
-                                    .expect("Should be ok");
-                                tm.replace(momentum);
-                                em.take();
-                            }
-                        }
-                        CollisionResult::Wall => {
-                            sokoban_entities
-                                .get_component_mut::<Momentum>(*entity)
-                                .expect("Should be ok")
-                                .take();
-                        }
-                        CollisionResult::OutOfBounds => {
-                            log::warn!("Entity {:?} out of bounds", *entity);
-                        }
-                    }
-                }
-            }
+            };
         }
     }
 }

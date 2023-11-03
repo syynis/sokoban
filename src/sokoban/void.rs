@@ -6,7 +6,7 @@ pub struct VoidPlugin;
 
 impl Plugin for VoidPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, apply_void.after(apply_momentum));
+        app.add_systems(Update, apply_void.before(apply_momentum));
     }
 }
 

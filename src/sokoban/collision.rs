@@ -10,7 +10,7 @@ impl Plugin for CollisionPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<CollisionMap>()
             .add_systems(
-                Update,
+                Startup,
                 (init_collision_map).run_if(in_state(GameState::Play)),
             )
             .add_systems(
@@ -34,7 +34,7 @@ impl Default for CollisionMap {
     }
 }
 
-fn init_collision_map(
+pub fn init_collision_map(
     mut cmds: Commands,
     tilemap: Query<&TilemapSize, Added<TileStorage>>,
     sokoban_entities: Query<(Entity, &Pos, &SokobanBlock)>,

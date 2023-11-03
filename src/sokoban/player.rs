@@ -4,8 +4,9 @@ use bevy_pile::tilemap::tile_to_world_pos;
 use leafwing_input_manager::prelude::*;
 
 use super::{
-    history::{HandleHistoryEvents, History, HistoryEvent},
-    momentum::Momentum,
+    handle_sokoban_events,
+    history::{History, HistoryEvent},
+    momentum::{any_momentum_left, Momentum},
     Dir, Pos, Pusher, SokobanBlock, SokobanEvents,
 };
 
@@ -15,7 +16,12 @@ impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(InputManagerPlugin::<PlayerActions>::default())
             .add_systems(Startup, setup)
-            .add_systems(Update, handle_player_actions.before(HandleHistoryEvents));
+            .add_systems(
+                Update,
+                handle_player_actions
+                    .before(handle_sokoban_events)
+                    .run_if(not(any_momentum_left())),
+            );
     }
 }
 
@@ -28,6 +34,17 @@ pub enum PlayerActions {
     Right,
     Down,
     Left,
+}
+
+impl From<PlayerActions> for Dir {
+    fn from(value: PlayerActions) -> Dir {
+        match value {
+            PlayerActions::Up => Dir::Up,
+            PlayerActions::Left => Dir::Left,
+            PlayerActions::Down => Dir::Down,
+            PlayerActions::Right => Dir::Right,
+        }
+    }
 }
 
 pub struct SpawnPlayer {
@@ -93,14 +110,10 @@ pub fn handle_player_actions(
         return;
     };
 
-    player_actions.get_just_pressed().iter().for_each(|action| {
-        match action {
-            PlayerActions::Up => sokoban.move_entity(player, Dir::Up),
-            PlayerActions::Right => sokoban.move_entity(player, Dir::Right),
-            PlayerActions::Down => sokoban.move_entity(player, Dir::Down),
-            PlayerActions::Left => sokoban.move_entity(player, Dir::Left),
-        };
-    });
+    player_actions
+        .get_just_pressed()
+        .iter()
+        .for_each(|action| sokoban.move_entity(player, Dir::from(*action)));
     if player_actions.get_just_pressed().len() > 0 {
         history_events.send(HistoryEvent::Record)
     }
