@@ -7,7 +7,7 @@ use super::{
     handle_sokoban_events,
     history::{History, HistoryEvent},
     momentum::{any_momentum_left, Momentum},
-    Dir, Pos, Pusher, SokobanBlock, SokobanEvents,
+    Dir, GameState, Pos, Pusher, SokobanBlock, SokobanEvents,
 };
 
 pub struct PlayerPlugin;
@@ -20,7 +20,12 @@ impl Plugin for PlayerPlugin {
                 Update,
                 handle_player_actions
                     .before(handle_sokoban_events)
-                    .run_if(not(any_momentum_left())),
+                    .run_if(not(any_momentum_left()))
+                    .run_if(in_state(GameState::Play)),
+            )
+            .add_systems(
+                PostUpdate,
+                clear_player_momentum.run_if(in_state(GameState::Play)),
             );
     }
 }
@@ -117,4 +122,11 @@ pub fn handle_player_actions(
     if player_actions.get_just_pressed().len() > 0 {
         history_events.send(HistoryEvent::Record)
     }
+}
+
+fn clear_player_momentum(mut player_q: Query<&mut Momentum, With<Player>>) {
+    let Ok(mut momentum) = player_q.get_single_mut() else {
+        return;
+    };
+    momentum.take();
 }

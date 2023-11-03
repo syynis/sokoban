@@ -8,8 +8,8 @@ use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_pancam::{PanCam, PanCamPlugin};
 use bevy_pile::{cursor::WorldCursorPlugin, tilemap::TileCursorPlugin};
 use sokoban::{
-    ball::SpawnBall, collision::init_collision_map, goal::Goal, player::SpawnPlayer, sand::Sand,
-    void::Void, GameState, Pos, SokobanBlock, SokobanPlugin,
+    ball::SpawnBall, collision::init_collision_map, goal::Goal, player::SpawnPlayer,
+    rubber::Rubber, sand::Sand, void::Void, GameState, Pos, SokobanBlock, SokobanPlugin,
 };
 
 pub mod sokoban;
@@ -58,7 +58,7 @@ fn setup(mut cmds: Commands, asset_server: Res<AssetServer>) {
         vec![1, 0, 0, 2, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 5, 5, 5, 0, 0, 1],
         vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
         vec![1, 0, 0, 2, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        vec![1, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 1],
+        vec![1, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 0, 6, 1],
         vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
         vec![1, 0, 0, 0, 0, 2, 2, 0, 0, 0, 5, 2, 0, 0, 0, 0, 0, 0, 0, 1],
         vec![1, 0, 0, 4, 0, 2, 2, 2, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 1],
@@ -86,6 +86,7 @@ fn setup(mut cmds: Commands, asset_server: Res<AssetServer>) {
                 3 => 4,
                 4 => 2,
                 5 => 3,
+                6 => 1,
                 _ => 0,
             };
             let tile_entity = cmds
@@ -117,13 +118,19 @@ fn setup(mut cmds: Commands, asset_server: Res<AssetServer>) {
                     .insert((Sand, Pos(pos), TileColor(Color::YELLOW)));
             }
             if *tile == 5 {
+                cmds.entity(tile_entity)
+                    .insert((Name::new("Void"), Void, Pos(pos)));
+            }
+            if *tile == 6 {
                 cmds.entity(tile_entity).insert((
-                    Name::new("Void"),
-                    Void,
+                    SokobanBlock::Static,
+                    Name::new("Rubber"),
+                    Rubber,
                     Pos(pos),
-                    TileColor(Color::BLACK),
+                    TileColor(Color::BLUE),
                 ));
             }
+
             storage.set(&pos, tile_entity);
         }
     }

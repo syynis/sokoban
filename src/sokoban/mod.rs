@@ -15,6 +15,7 @@ use self::{
     history::{HandleHistoryEvents, History, HistoryEvent, HistoryPlugin},
     momentum::MomentumPlugin,
     player::PlayerPlugin,
+    rubber::RubberPlugin,
     sand::SandPlugin,
     void::VoidPlugin,
 };
@@ -25,6 +26,7 @@ pub mod goal;
 pub mod history;
 pub mod momentum;
 pub mod player;
+pub mod rubber;
 pub mod sand;
 pub mod void;
 
@@ -41,6 +43,7 @@ impl Plugin for SokobanPlugin {
             CollisionPlugin,
             SandPlugin,
             VoidPlugin,
+            RubberPlugin,
         ))
         .add_state::<GameState>()
         .register_type::<Pos>()
@@ -183,6 +186,18 @@ pub enum Dir {
     Left,
 }
 
+impl Dir {
+    pub fn opposite(&self) -> Dir {
+        use Dir::*;
+        match self {
+            Up => Down,
+            Down => Up,
+            Left => Right,
+            Right => Left,
+        }
+    }
+}
+
 impl From<Dir> for IVec2 {
     fn from(direction: Dir) -> IVec2 {
         match direction {
@@ -220,11 +235,7 @@ fn handle_sokoban_events(
         if let Some((pos, _)) = sokoban_entities.get(*entity).ok() {
             let push = collision.push_collision(IVec2::from(*pos), *direction);
             if let CollisionResult::Push(push) = push {
-                sokoban_entities
-                    .get_component_mut::<Pos>(*entity)
-                    .expect("Player exists")
-                    .add_dir(*direction);
-                for e in push.iter().skip(1) {
+                for e in push.iter() {
                     sokoban_entities
                         .get_component_mut::<Momentum>(*e)
                         .expect("Dynamic objects have a momentum component")

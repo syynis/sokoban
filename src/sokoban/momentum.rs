@@ -16,6 +16,7 @@ impl Plugin for MomentumPlugin {
             (
                 handle_momentum
                     .run_if(resource_exists::<CollisionMap>())
+                    .before(handle_sokoban_events)
                     .before(HandleHistoryEvents),
                 apply_momentum.after(handle_sokoban_events),
             ),

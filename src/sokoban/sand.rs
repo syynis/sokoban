@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 use super::{
-    momentum::{apply_momentum, Momentum},
+    momentum::{apply_momentum, handle_momentum, Momentum},
     Pos,
 };
 
@@ -9,7 +9,10 @@ pub struct SandPlugin;
 
 impl Plugin for SandPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, apply_sand.before(apply_momentum));
+        app.add_systems(
+            Update,
+            apply_sand.before(apply_momentum).before(handle_momentum),
+        );
     }
 }
 
