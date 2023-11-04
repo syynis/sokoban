@@ -1,0 +1,14 @@
+(
+    tiles: [
+        Wall,
+        Wall,
+        Wall,
+        Wall,
+        Floor,
+        Wall,
+        Wall,
+        Wall,
+        Wall,
+    ],
+    size: (3, 3),
+)

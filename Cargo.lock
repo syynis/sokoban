@@ -3368,12 +3368,16 @@ dependencies = [
 name = "sokoban"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "bevy",
  "bevy-inspector-egui",
  "bevy_ecs_tilemap",
  "bevy_pancam",
  "bevy_pile",
+ "futures-lite",
  "leafwing-input-manager",
+ "ron",
+ "serde",
 ]
 
 [[package]]

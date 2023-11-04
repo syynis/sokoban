@@ -10,6 +10,10 @@ leafwing-input-manager = "0.10"
 bevy_pancam = {version = "0.9", features = ["bevy_egui"]}
 bevy_ecs_tilemap = {git = "https://github.com/StarArawn/bevy_ecs_tilemap", branch = "main"}
 bevy_pile = {git = "https://github.com/syynis/bevy_pile", branch = "main"}
+serde = "1.0"
+anyhow = "1.0"
+ron = "0.8"
+futures-lite = "1.13.0"
 
 [profile.dev]
 opt-level = 1

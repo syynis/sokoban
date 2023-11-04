@@ -1,4 +1,6 @@
-use bevy::prelude::*;
+use std::path::PathBuf;
+
+use bevy::{asset::AssetPath, log, prelude::*};
 use bevy_ecs_tilemap::{
     prelude::{TilemapId, TilemapSize, TilemapTexture, TilemapTileSize, TilemapType},
     tiles::{TileBundle, TileColor, TilePos, TileStorage, TileTextureIndex},
@@ -7,10 +9,20 @@ use bevy_ecs_tilemap::{
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_pancam::{PanCam, PanCamPlugin};
 use bevy_pile::{cursor::WorldCursorPlugin, tilemap::TileCursorPlugin};
+use ron::ser::PrettyConfig;
 use sokoban::{
-    ball::SpawnBall, collision::init_collision_map, goal::Goal, player::SpawnPlayer,
-    rubber::Rubber, sand::Sand, void::Void, GameState, Pos, SokobanBlock, SokobanPlugin,
+    ball::SpawnBall,
+    collision::init_collision_map,
+    goal::Goal,
+    level::{load_level, LevelFormat, Tile},
+    player::SpawnPlayer,
+    rubber::Rubber,
+    sand::Sand,
+    void::Void,
+    GameState, Pos, SokobanBlock, SokobanPlugin,
 };
+
+use crate::sokoban::level::LevelLoader;
 
 pub mod sokoban;
 
@@ -32,6 +44,7 @@ fn main() {
             .before(init_collision_map)
             .run_if(in_state(GameState::Play)),
     );
+    app.add_systems(Update, (load, load_level));
     app.run();
 }
 
@@ -67,6 +80,27 @@ fn setup(mut cmds: Commands, asset_server: Res<AssetServer>) {
         vec![1, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
         vec![1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
     ];
+
+    #[rustfmt::skip]
+    let map2 = vec![
+        1,1,1,
+        1,0,1,
+        1,1,1
+    ];
+
+    let tiles: Vec<Tile> = map2
+        .iter()
+        .map(|id| if *id == 1 { Tile::Wall } else { Tile::Floor })
+        .collect();
+    let format = LevelFormat {
+        tiles,
+        size: UVec2::splat(3),
+    };
+
+    log::info!(
+        "{}",
+        ron::ser::to_string_pretty(&format, PrettyConfig::default()).unwrap()
+    );
 
     let tiles: Handle<Image> = asset_server.load("tiles.png");
 
@@ -156,4 +190,19 @@ fn setup(mut cmds: Commands, asset_server: Res<AssetServer>) {
     cmds.add(SpawnPlayer {
         pos: Pos::new(2, 2),
     });
+}
+
+pub fn load(mut cmds: Commands, keys: Res<Input<KeyCode>>) {
+    if keys.just_pressed(KeyCode::Q) {
+        let path = AssetPath::new(
+            PathBuf::from("/home/synis/dev/sokoban/assets/test.ron"),
+            None,
+        )
+        .path()
+        .to_path_buf();
+        log::info!("{:?}", path);
+        let loaded = LevelLoader::new(path);
+
+        cmds.spawn(loaded);
+    }
 }

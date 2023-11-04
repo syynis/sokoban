@@ -24,6 +24,7 @@ pub mod ball;
 pub mod collision;
 pub mod goal;
 pub mod history;
+pub mod level;
 pub mod momentum;
 pub mod player;
 pub mod rubber;
