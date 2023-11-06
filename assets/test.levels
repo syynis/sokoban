@@ -1,0 +1,25 @@
+([
+    (
+        tiles: [
+            Wall,
+            Floor,
+            Wall,
+            Floor,
+        ],
+        size: (2, 2),
+    ),
+    (
+        tiles: [
+            Wall,
+            Wall,
+            Wall,
+            Wall,
+            Floor,
+            Wall,
+            Wall,
+            Wall,
+            Wall,
+        ],
+        size: (3, 3),
+    ),
+])
