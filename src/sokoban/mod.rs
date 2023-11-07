@@ -13,6 +13,7 @@ use self::{
     collision::{CollisionMap, CollisionPlugin, CollisionResult},
     goal::GoalPlugin,
     history::{HandleHistoryEvents, History, HistoryEvent, HistoryPlugin},
+    main_menu::MainMenuPlugin,
     momentum::MomentumPlugin,
     player::PlayerPlugin,
     rubber::RubberPlugin,
@@ -26,6 +27,7 @@ pub mod collision;
 pub mod goal;
 pub mod history;
 pub mod level;
+pub mod main_menu;
 pub mod momentum;
 pub mod player;
 pub mod rubber;
@@ -46,6 +48,7 @@ impl Plugin for SokobanPlugin {
             SandPlugin,
             VoidPlugin,
             RubberPlugin,
+            MainMenuPlugin,
         ))
         .add_state::<GameState>()
         .register_type::<Pos>()

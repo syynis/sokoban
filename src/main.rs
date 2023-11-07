@@ -35,14 +35,18 @@ fn main() {
     app.add_asset::<Levels>();
     app.register_type::<Level>()
         .register_type::<AssetCollection>();
+    app.insert_resource(ClearColor(Color::ANTIQUE_WHITE));
     app.add_systems(
         Startup,
-        (setup, apply_deferred)
-            .chain()
-            .before(init_collision_map)
-            .run_if(in_state(GameState::LevelSelect)),
+        (
+            setup,
+            (init_collision_map).run_if(in_state(GameState::LevelSelect)),
+        ),
     );
-    app.add_systems(Update, (print_levels, spawn_level));
+    app.add_systems(
+        Update,
+        (print_levels, spawn_level).run_if(in_state(GameState::LevelSelect)),
+    );
     app.run();
 }
 
