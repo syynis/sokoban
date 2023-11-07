@@ -54,28 +54,43 @@ impl From<PlayerActions> for Dir {
 
 pub struct SpawnPlayer {
     pub pos: Pos,
+    pub tilemap_entity: Entity,
+}
+
+impl SpawnPlayer {
+    pub fn new(pos: Pos, tilemap_entity: Entity) -> Self {
+        Self {
+            pos,
+            tilemap_entity,
+        }
+    }
 }
 
 impl Command for SpawnPlayer {
     fn apply(self, world: &mut World) {
         let asset_server = world.resource::<AssetServer>();
         let player_handle: Handle<Image> = asset_server.load("player.png");
-        world.spawn((
-            Name::new("Player"),
-            Player,
-            self.pos,
-            History::<Pos>::default(),
-            SokobanBlock::Dynamic,
-            Pusher,
-            SpriteBundle {
-                texture: player_handle,
-                transform: Transform::from_translation(
-                    tile_to_world_pos(&self.pos, &TilemapGridSize { x: 8., y: 8. }).extend(1.),
-                ),
-                ..default()
-            },
-            Momentum::default(),
-        ));
+        world
+            .entity_mut(self.tilemap_entity)
+            .with_children(|child_builder| {
+                child_builder.spawn((
+                    Name::new("Player"),
+                    Player,
+                    self.pos,
+                    History::<Pos>::default(),
+                    SokobanBlock::Dynamic,
+                    Pusher,
+                    SpriteBundle {
+                        texture: player_handle,
+                        transform: Transform::from_translation(
+                            tile_to_world_pos(&self.pos, &TilemapGridSize { x: 8., y: 8. })
+                                .extend(1.),
+                        ),
+                        ..default()
+                    },
+                    Momentum::default(),
+                ));
+            });
     }
 }
 
