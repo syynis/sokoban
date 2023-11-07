@@ -21,6 +21,7 @@ use self::{
 };
 
 pub mod ball;
+pub mod cleanup;
 pub mod collision;
 pub mod goal;
 pub mod history;
@@ -84,6 +85,7 @@ pub enum MovementSet {
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
 pub enum GameState {
     #[default]
+    MainMenu,
     LevelSelect,
     Play,
 }
