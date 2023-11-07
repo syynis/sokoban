@@ -83,8 +83,8 @@ pub enum MovementSet {
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
 pub enum GameState {
-    LevelSelect,
     #[default]
+    LevelSelect,
     Play,
 }
 

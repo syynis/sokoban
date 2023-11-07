@@ -11,7 +11,7 @@ use sokoban::{
     ball::SpawnBall,
     collision::init_collision_map,
     goal::Goal,
-    level::{Level, LevelLoader, Levels},
+    level::{Level, LevelLoader, Levels, TileKind},
     player::SpawnPlayer,
     GameState, Pos, SokobanBlock, SokobanPlugin,
 };
@@ -40,9 +40,9 @@ fn main() {
         (setup, apply_deferred)
             .chain()
             .before(init_collision_map)
-            .run_if(in_state(GameState::Play)),
+            .run_if(in_state(GameState::LevelSelect)),
     );
-    app.add_systems(Update, print_levels);
+    app.add_systems(Update, (print_levels, spawn_level));
     app.run();
 }
 
@@ -50,6 +50,7 @@ fn main() {
 #[reflect(Resource)]
 pub struct AssetCollection {
     pub levels: Handle<Levels>,
+    pub tiles: Handle<Image>,
 }
 
 fn setup(mut cmds: Commands, asset_server: Res<AssetServer>) {
@@ -63,119 +64,8 @@ fn setup(mut cmds: Commands, asset_server: Res<AssetServer>) {
     ));
 
     let levels: Handle<Levels> = asset_server.load("test.levels");
-    cmds.insert_resource(AssetCollection { levels });
-
-    let map = vec![
-        vec![1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        vec![1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 1],
-        vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 5, 5, 5, 0, 0, 1],
-        vec![1, 0, 0, 2, 0, 0, 0, 2, 2, 0, 5, 2, 2, 2, 0, 0, 5, 1, 0, 1],
-        vec![1, 0, 0, 2, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 5, 5, 5, 0, 0, 1],
-        vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        vec![1, 0, 0, 2, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        vec![1, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 0, 6, 1],
-        vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        vec![1, 0, 0, 0, 0, 2, 2, 0, 0, 0, 5, 2, 0, 0, 0, 0, 0, 0, 0, 1],
-        vec![1, 0, 0, 4, 0, 2, 2, 2, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        vec![1, 0, 0, 0, 0, 2, 2, 2, 0, 0, 5, 1, 0, 0, 0, 0, 0, 0, 0, 1],
-        vec![1, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        vec![1, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        vec![1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    ];
-
     let tiles: Handle<Image> = asset_server.load("tiles.png");
-
-    let size = TilemapSize::from(UVec2::splat(map.len() as u32));
-    let mut storage = TileStorage::empty(size);
-
-    let tilemap_entity = cmds.spawn_empty().id();
-    for (y, row) in map.iter().rev().enumerate() {
-        for (x, tile) in row.iter().enumerate() {
-            let pos = TilePos {
-                x: x as u32,
-                y: y as u32,
-            };
-            let tile_idx = match *tile {
-                0 => 0,
-                1 => 1,
-                3 => 4,
-                4 => 2,
-                5 => 3,
-                6 => 1,
-                _ => 0,
-            };
-            let tile_entity = cmds
-                .spawn((
-                    Name::new("Tile"),
-                    TileBundle {
-                        position: pos,
-                        texture_index: TileTextureIndex(tile_idx),
-                        tilemap_id: TilemapId(tilemap_entity),
-                        ..default()
-                    },
-                ))
-                .id();
-            if *tile == 1 {
-                cmds.entity(tile_entity)
-                    .insert((SokobanBlock::Static, Pos(pos)));
-            }
-
-            if *tile == 2 {
-                cmds.add(SpawnBall { pos: Pos(pos) });
-            }
-
-            if *tile == 3 {
-                cmds.entity(tile_entity).insert((Goal, Pos(pos)));
-            }
-
-            if *tile == 4 {
-                cmds.entity(tile_entity)
-                    .insert((Sand, Pos(pos), TileColor(Color::YELLOW)));
-            }
-            if *tile == 5 {
-                cmds.entity(tile_entity)
-                    .insert((Name::new("Void"), Void, Pos(pos)));
-            }
-            if *tile == 6 {
-                cmds.entity(tile_entity).insert((
-                    SokobanBlock::Static,
-                    Name::new("Rubber"),
-                    Rubber,
-                    Pos(pos),
-                    TileColor(Color::BLUE),
-                ));
-            }
-
-            storage.set(&pos, tile_entity);
-        }
-    }
-
-    let tile_size = TilemapTileSize::from(Vec2::splat(8.));
-    let grid_size = tile_size.into();
-    let map_type = TilemapType::Square;
-
-    cmds.entity(tilemap_entity).insert((
-        TilemapBundle {
-            grid_size,
-            map_type,
-            size,
-            storage,
-            texture: TilemapTexture::Single(tiles),
-            tile_size,
-            transform: Transform::from_xyz(0., 0., 0.),
-            ..default()
-        },
-        Name::new("Level"),
-    ));
-
-    cmds.add(SpawnPlayer {
-        pos: Pos::new(2, 2),
-    });
+    cmds.insert_resource(AssetCollection { levels, tiles });
 }
 
 fn print_levels(
@@ -193,5 +83,110 @@ fn print_levels(
                 log::info!("{:?}", level);
             }
         }
+    }
+}
+
+fn spawn_level(
+    mut cmds: Commands,
+    tilemap_q: Query<Entity>,
+    keys: Res<Input<KeyCode>>,
+    levels_assets: Res<Assets<Levels>>,
+    asset_collection: Res<AssetCollection>,
+    asset_server: Res<AssetServer>,
+) {
+    let levels_handle = &asset_collection.levels;
+    if !matches!(
+        asset_server.get_load_state(levels_handle),
+        LoadState::Loaded
+    ) {
+        return;
+    }
+
+    let Some(levels) = levels_assets.get(levels_handle) else {
+        return;
+    };
+    let level = levels.first().unwrap();
+
+    if keys.just_pressed(KeyCode::S) {
+        if let Ok(tilemap_entity) = tilemap_q.get_single() {
+            cmds.entity(tilemap_entity).despawn_recursive();
+        };
+        let size = TilemapSize::from(level.size);
+        let mut storage = TileStorage::empty(size);
+        let tilemap_entity = cmds.spawn_empty().id();
+        let tile_size = TilemapTileSize::from(Vec2::splat(8.));
+        let grid_size = tile_size.into();
+        let map_type = TilemapType::Square;
+
+        for (idx, tile) in level.tiles.iter().enumerate() {
+            let position = TilePos {
+                x: idx as u32 % level.size.x,
+                y: idx as u32 / level.size.x,
+            };
+
+            let id = match tile {
+                TileKind::Wall => 1,
+                TileKind::Floor => 0,
+                TileKind::Void => 3,
+                TileKind::Ball => 0,
+                TileKind::Rubber => 5,
+                TileKind::Sand => 2,
+                TileKind::Player => 0,
+                TileKind::Goal => 4,
+            };
+
+            let tile_entity = cmds
+                .spawn((
+                    Name::new("Tile"),
+                    TileBundle {
+                        position,
+                        texture_index: TileTextureIndex(id),
+                        tilemap_id: TilemapId(tilemap_entity),
+                        ..default()
+                    },
+                ))
+                .id();
+
+            let mut tile_cmds = cmds.entity(tile_entity);
+            if !matches!(tile, TileKind::Floor) {
+                tile_cmds.insert(Pos(position));
+            }
+
+            match tile {
+                TileKind::Sand => {
+                    tile_cmds.insert((Name::new("Sand"), Sand));
+                }
+                TileKind::Rubber => {
+                    tile_cmds.insert((Name::new("Rubber"), SokobanBlock::Static, Rubber));
+                }
+                TileKind::Wall => {
+                    tile_cmds.insert(SokobanBlock::Static);
+                }
+                TileKind::Void => {
+                    tile_cmds.insert((Name::new("Void"), Void));
+                }
+                TileKind::Goal => {
+                    tile_cmds.insert((Name::new("Goal"), Goal));
+                }
+                TileKind::Ball => cmds.add(SpawnBall::new(Pos(position), tilemap_entity)),
+                TileKind::Player => cmds.add(SpawnPlayer::new(Pos(position), tilemap_entity)),
+                TileKind::Floor => {}
+            };
+            storage.set(&position, tile_entity);
+            cmds.entity(tilemap_entity).add_child(tile_entity);
+        }
+        cmds.entity(tilemap_entity).insert((
+            TilemapBundle {
+                grid_size,
+                map_type,
+                size,
+                storage,
+                texture: TilemapTexture::Single(asset_collection.tiles.clone()),
+                tile_size,
+                transform: Transform::from_xyz(0., 0., 0.),
+                ..default()
+            },
+            Name::new("Level"),
+        ));
     }
 }
