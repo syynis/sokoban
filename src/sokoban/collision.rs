@@ -9,10 +9,7 @@ pub struct CollisionPlugin;
 impl Plugin for CollisionPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<CollisionMap>()
-            .add_systems(
-                Startup,
-                (init_collision_map).run_if(in_state(GameState::Play)),
-            )
+            .add_systems(OnEnter(GameState::Play), init_collision_map)
             .add_systems(
                 PostUpdate,
                 sync_collision_map.run_if(in_state(GameState::Play)),

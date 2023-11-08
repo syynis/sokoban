@@ -1,4 +1,4 @@
-use super::{player::Player, GameState, Pos};
+use super::{momentum::any_momentum_left, player::Player, GameState, Pos};
 
 use bevy::prelude::*;
 
@@ -6,7 +6,12 @@ pub struct GoalPlugin;
 
 impl Plugin for GoalPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, check_goal.run_if(in_state(GameState::Play)));
+        app.add_systems(
+            Update,
+            check_goal
+                .run_if(in_state(GameState::Play))
+                .run_if(not(any_momentum_left())),
+        );
     }
 }
 

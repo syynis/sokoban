@@ -10,9 +10,12 @@ use leafwing_input_manager::prelude::*;
 use crate::sokoban::momentum::Momentum;
 
 use self::{
+    cleanup::cleanup_on_state_change,
     collision::{CollisionMap, CollisionPlugin, CollisionResult},
     goal::GoalPlugin,
     history::{HandleHistoryEvents, History, HistoryEvent, HistoryPlugin},
+    level::LevelPlugin,
+    level_select::LevelSelectPlugin,
     main_menu::MainMenuPlugin,
     momentum::MomentumPlugin,
     player::PlayerPlugin,
@@ -27,6 +30,7 @@ pub mod collision;
 pub mod goal;
 pub mod history;
 pub mod level;
+pub mod level_select;
 pub mod main_menu;
 pub mod momentum;
 pub mod player;
@@ -49,6 +53,8 @@ impl Plugin for SokobanPlugin {
             VoidPlugin,
             RubberPlugin,
             MainMenuPlugin,
+            LevelSelectPlugin,
+            LevelPlugin,
         ))
         .add_state::<GameState>()
         .register_type::<Pos>()
@@ -68,10 +74,9 @@ impl Plugin for SokobanPlugin {
                     handle_sokoban_events.run_if(on_event::<SokobanEvent>()),
                 )
                     .run_if(in_state(GameState::Play)),
-                // Level Select
-                (play).run_if(in_state(GameState::LevelSelect)),
             ),
         )
+        .add_systems(PostUpdate, cleanup_on_state_change::<GameState>)
         .add_systems(PostUpdate, copy_pos_to_transform);
     }
 }
@@ -91,19 +96,6 @@ pub enum GameState {
     MainMenu,
     LevelSelect,
     Play,
-}
-
-fn play(
-    mut next_state: ResMut<NextState<GameState>>,
-    actions: Query<&ActionState<SokobanActions>>,
-) {
-    let Ok(actions) = actions.get_single() else {
-        return;
-    };
-
-    if actions.just_pressed(SokobanActions::Play) {
-        next_state.set(GameState::Play)
-    }
 }
 
 fn log_state_change(state: Res<State<GameState>>) {
