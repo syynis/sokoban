@@ -42,6 +42,7 @@ fn spawn_level(
     asset_server: Res<AssetServer>,
 ) {
     let levels_handle = &asset_collection.levels;
+    // TODO Implement asset loading to guarantee that nothing happens before assets are loaded at startup
     if !matches!(
         asset_server.get_load_state(levels_handle),
         LoadState::Loaded
@@ -49,13 +50,12 @@ fn spawn_level(
         return;
     }
 
-    let Some(levels) = levels_assets.get(levels_handle) else {
-        return;
-    };
-    let Some(level) = levels.get(**current_level) else {
-        bevy::log::warn!("Tried to load level that doesnt exist");
-        return;
-    };
+    let levels = levels_assets
+        .get(levels_handle)
+        .expect("Level handle should be loaded");
+    let level = levels
+        .get(**current_level)
+        .expect("Current level should only ever be set to a valid level");
 
     let size = TilemapSize::from(level.size);
     let mut storage = TileStorage::empty(size);

@@ -1,6 +1,12 @@
 use bevy::{ecs::system::Command, prelude::*};
 
-use super::{cleanup::DependOnState, level::CurrentLevel, GameState};
+use crate::AssetCollection;
+
+use super::{
+    cleanup::DependOnState,
+    level::{CurrentLevel, Levels},
+    GameState,
+};
 
 pub struct LevelSelectPlugin;
 
@@ -25,6 +31,12 @@ pub struct SpawnLevelSelectButtons;
 
 impl Command for SpawnLevelSelectButtons {
     fn apply(self, world: &mut World) {
+        let assets = world.resource::<AssetCollection>();
+        let amount_levels = world
+            .resource::<Assets<Levels>>()
+            .get(&assets.levels)
+            .expect("Level assets should be loaded")
+            .len();
         let rows = 4;
         let cols = 4;
 
@@ -33,23 +45,20 @@ impl Command for SpawnLevelSelectButtons {
             let mut buttons = Vec::new();
             for c in 0..cols {
                 let id = world
-                    .spawn((
-                        ButtonBundle {
-                            style: Style {
-                                width: Val::Px(75.0),
-                                height: Val::Px(75.0),
-                                margin: UiRect::all(Val::Px(10.)),
-                                justify_content: JustifyContent::Center,
-                                align_items: AlignItems::Center,
-                                border: UiRect::all(Val::Px(2.)),
-                                ..default()
-                            },
-                            background_color: BackgroundColor(Color::DARK_GRAY),
-                            focus_policy: bevy::ui::FocusPolicy::Block,
+                    .spawn((ButtonBundle {
+                        style: Style {
+                            width: Val::Px(75.0),
+                            height: Val::Px(75.0),
+                            margin: UiRect::all(Val::Px(10.)),
+                            justify_content: JustifyContent::Center,
+                            align_items: AlignItems::Center,
+                            border: UiRect::all(Val::Px(2.)),
                             ..default()
                         },
-                        LevelButton(c + r * cols),
-                    ))
+                        background_color: BackgroundColor(Color::DARK_GRAY),
+                        focus_policy: bevy::ui::FocusPolicy::Block,
+                        ..default()
+                    },))
                     .with_children(|parent| {
                         parent.spawn(TextBundle::from_section(
                             format!("{}", c + r * cols),
@@ -61,6 +70,11 @@ impl Command for SpawnLevelSelectButtons {
                         ));
                     })
                     .id();
+
+                let idx = c + r * cols;
+                if idx < amount_levels {
+                    world.entity_mut(id).insert(LevelButton(idx));
+                }
                 buttons.push(id);
             }
             let row_node = world

@@ -106,7 +106,6 @@ fn log_state_change(state: Res<State<GameState>>) {
 
 #[derive(Actionlike, Clone, Copy, Hash, Debug, PartialEq, Eq, Reflect)]
 pub enum SokobanActions {
-    Play,
     Rewind,
 }
 
@@ -115,7 +114,6 @@ fn sokoban_actions() -> InputMap<SokobanActions> {
     let mut input_map = InputMap::default();
 
     input_map.insert(KeyCode::U, Rewind);
-    input_map.insert(KeyCode::P, Play);
 
     input_map
 }
