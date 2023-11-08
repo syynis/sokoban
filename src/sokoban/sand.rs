@@ -24,11 +24,7 @@ fn apply_sand(
     mut momentum_query: Query<(&Pos, &mut Momentum)>,
 ) {
     for (pos, mut momentum) in momentum_query.iter_mut() {
-        if sand_query
-            .iter()
-            .find(|sand_pos| *sand_pos == pos)
-            .is_some()
-        {
+        if sand_query.iter().any(|sand_pos| sand_pos == pos) {
             momentum.take();
         }
     }

@@ -230,7 +230,7 @@ fn handle_sokoban_events(
 ) {
     for ev in sokoban_events.iter() {
         let SokobanEvent::Move { entity, direction } = ev;
-        if let Some((pos, _)) = sokoban_entities.get(*entity).ok() {
+        if let Ok((pos, _)) = sokoban_entities.get(*entity) {
             let push = collision.push_collision(IVec2::from(*pos), *direction);
             if let CollisionResult::Push(push) = push {
                 for e in push.iter() {

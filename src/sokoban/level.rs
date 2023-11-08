@@ -163,7 +163,7 @@ impl From<u8> for TileKind {
             b'g' => Goal,
             _ => {
                 bevy::log::warn!("Couldnt parse tile kind defaulting to wall tile");
-                return Wall;
+                Wall
             }
         }
     }
@@ -195,8 +195,7 @@ impl AssetLoader for LevelLoader {
                     .map(|string_level| Level {
                         tiles: string_level
                             .tiles
-                            .replace("\n", "")
-                            .replace(" ", "")
+                            .replace(['\n', ' '], "")
                             .as_bytes()
                             .iter()
                             .map(|byte| TileKind::from(*byte))

@@ -134,7 +134,7 @@ pub fn handle_player_actions(
         .get_just_pressed()
         .iter()
         .for_each(|action| sokoban.move_entity(player, Dir::from(*action)));
-    if player_actions.get_just_pressed().len() > 0 {
+    if !player_actions.get_just_pressed().is_empty() {
         history_events.send(HistoryEvent::Record)
     }
 }

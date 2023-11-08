@@ -22,11 +22,7 @@ fn handle_rubber(
             let mut dest = *pos;
             dest.add_dir(dir);
 
-            if rubber_query
-                .iter()
-                .find(|rubber_pos| **rubber_pos == dest)
-                .is_some()
-            {
+            if rubber_query.iter().any(|rubber_pos| *rubber_pos == dest) {
                 momentum.replace(dir.opposite());
             }
         }

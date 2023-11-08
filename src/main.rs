@@ -11,7 +11,7 @@ fn main() {
 
     app.add_plugins((
         DefaultPlugins.set(ImagePlugin::default_nearest()),
-        PanCamPlugin::default(),
+        PanCamPlugin,
         WorldCursorPlugin::<PanCam>::default(),
         WorldInspectorPlugin::default(),
         TileCursorPlugin,

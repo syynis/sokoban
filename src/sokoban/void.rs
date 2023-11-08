@@ -19,11 +19,7 @@ fn apply_void(
     sokoban_query: Query<(Entity, &Pos), Without<Void>>,
 ) {
     for (entity, pos) in sokoban_query.iter() {
-        if void_query
-            .iter()
-            .find(|void_pos| *void_pos == pos)
-            .is_some()
-        {
+        if void_query.iter().any(|void_pos| void_pos == pos) {
             cmds.entity(entity).despawn_recursive();
         }
     }
