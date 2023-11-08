@@ -1,8 +1,13 @@
-use bevy::prelude::*;
+use std::time::Duration;
+
+use bevy::{asset::ChangeWatcher, prelude::*};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_pancam::{PanCam, PanCamPlugin};
 use bevy_pile::{cursor::WorldCursorPlugin, tilemap::TileCursorPlugin};
-use sokoban::{level::Levels, SokobanPlugin};
+use sokoban::{
+    level::{AssetCollection, Levels},
+    SokobanPlugin,
+};
 
 pub mod sokoban;
 
@@ -10,7 +15,14 @@ fn main() {
     let mut app = App::new();
 
     app.add_plugins((
-        DefaultPlugins.set(ImagePlugin::default_nearest()),
+        DefaultPlugins
+            .set(ImagePlugin::default_nearest())
+            .set(AssetPlugin {
+                watch_for_changes: Some(ChangeWatcher {
+                    delay: Duration::from_secs_f64(0.5),
+                }),
+                ..default()
+            }),
         PanCamPlugin,
         WorldCursorPlugin::<PanCam>::default(),
         WorldInspectorPlugin::default(),
@@ -18,16 +30,8 @@ fn main() {
         SokobanPlugin,
     ));
     app.insert_resource(ClearColor(Color::ANTIQUE_WHITE));
-    app.register_type::<AssetCollection>();
     app.add_systems(Startup, setup);
     app.run();
-}
-
-#[derive(Resource, Reflect, Default)]
-#[reflect(Resource)]
-pub struct AssetCollection {
-    pub levels: Handle<Levels>,
-    pub tiles: Handle<Image>,
 }
 
 fn setup(mut cmds: Commands, asset_server: Res<AssetServer>) {

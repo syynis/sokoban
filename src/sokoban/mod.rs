@@ -107,6 +107,7 @@ fn log_state_change(state: Res<State<GameState>>) {
 #[derive(Actionlike, Clone, Copy, Hash, Debug, PartialEq, Eq, Reflect)]
 pub enum SokobanActions {
     Rewind,
+    QuitLevel,
 }
 
 fn sokoban_actions() -> InputMap<SokobanActions> {
@@ -114,6 +115,7 @@ fn sokoban_actions() -> InputMap<SokobanActions> {
     let mut input_map = InputMap::default();
 
     input_map.insert(KeyCode::U, Rewind);
+    input_map.insert(KeyCode::Escape, QuitLevel);
 
     input_map
 }
@@ -131,12 +133,16 @@ fn setup(mut cmds: Commands) {
 fn handle_sokoban_actions(
     actions: Query<&ActionState<SokobanActions>>,
     mut history_events: EventWriter<HistoryEvent>,
+    mut state: ResMut<NextState<GameState>>,
 ) {
     let Some(actions) = actions.get_single().ok() else {
         return;
     };
     if actions.just_pressed(SokobanActions::Rewind) {
         history_events.send(HistoryEvent::Rewind)
+    }
+    if actions.just_pressed(SokobanActions::QuitLevel) {
+        state.set(GameState::LevelSelect)
     }
 }
 

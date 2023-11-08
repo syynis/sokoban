@@ -1,4 +1,4 @@
-use super::{momentum::any_momentum_left, player::Player, GameState, Pos};
+use super::{ball::Ball, momentum::any_momentum_left, GameState, Pos};
 
 use bevy::prelude::*;
 
@@ -19,21 +19,14 @@ impl Plugin for GoalPlugin {
 pub struct Goal;
 
 fn check_goal(
-    player: Query<&Pos, With<Player>>,
-    goal: Query<&Pos, With<Goal>>,
+    balls: Query<&Pos, With<Ball>>,
+    goals: Query<&Pos, With<Goal>>,
     mut next_state: ResMut<NextState<GameState>>,
 ) {
-    let Ok(goal_pos) = goal.get_single() else {
-        bevy::log::warn!("Either no or more than one goal exists");
-        return;
-    };
-
-    let Ok(player_pos) = player.get_single() else {
-        bevy::log::warn!("Either no or more than one player exists");
-        return;
-    };
-
-    if goal_pos == player_pos {
+    let satisfied = goals
+        .iter()
+        .all(|goal| balls.iter().any(|ball| ball == goal));
+    if satisfied {
         next_state.set(GameState::LevelSelect);
     }
 }

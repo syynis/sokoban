@@ -9,8 +9,6 @@ use bevy::{
 use bevy_ecs_tilemap::prelude::*;
 use serde::Deserialize;
 
-use crate::AssetCollection;
-
 use super::{
     ball::SpawnBall, cleanup::DependOnState, collision::init_collision_map, goal::Goal,
     player::SpawnPlayer, rubber::Rubber, sand::Sand, void::Void, GameState, Pos, SokobanBlock,
@@ -21,18 +19,42 @@ pub struct LevelPlugin;
 impl Plugin for LevelPlugin {
     fn build(&self, app: &mut App) {
         app.init_asset_loader::<LevelLoader>().add_asset::<Levels>();
-        app.register_type::<Level>();
+        app.register_type::<Level>()
+            .register_type::<AssetCollection>();
         app.add_systems(
             OnEnter(GameState::Play),
-            (spawn_level, apply_deferred)
+            (spawn_level, apply_deferred, center_camera_on_level)
                 .chain()
                 .before(init_collision_map),
         );
     }
 }
 
+#[derive(Resource, Reflect, Default)]
+#[reflect(Resource)]
+pub struct AssetCollection {
+    pub levels: Handle<Levels>,
+    pub tiles: Handle<Image>,
+}
+
 #[derive(Resource, Deref, DerefMut)]
 pub struct CurrentLevel(pub usize);
+
+fn center_camera_on_level(
+    mut camera_q: Query<(&mut Transform, &mut OrthographicProjection), With<Camera>>,
+    tilemap_q: Query<&TilemapSize, (With<TileStorage>, Without<Camera>)>,
+) {
+    let Ok((mut camera_transform, mut projection)) = camera_q.get_single_mut() else {
+        return;
+    };
+
+    let Ok(size) = tilemap_q.get_single() else {
+        return;
+    };
+    let center = Vec2::from(*size) * 8. / 2. - 4.;
+    camera_transform.translation = center.extend(camera_transform.translation.z);
+    projection.scale = 0.15;
+}
 
 fn spawn_level(
     mut cmds: Commands,
@@ -67,7 +89,7 @@ fn spawn_level(
     for (idx, tile) in level.tiles.iter().enumerate() {
         let position = TilePos {
             x: idx as u32 % level.size.x,
-            y: idx as u32 / level.size.x,
+            y: level.size.y - (idx as u32 / level.size.x) - 1,
         };
 
         let id = match tile {
@@ -129,7 +151,6 @@ fn spawn_level(
             storage,
             texture: TilemapTexture::Single(asset_collection.tiles.clone()),
             tile_size,
-            transform: Transform::from_xyz(0., 0., 0.),
             ..default()
         },
         Name::new("Level"),
