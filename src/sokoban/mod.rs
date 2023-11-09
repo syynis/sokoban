@@ -71,7 +71,9 @@ impl Plugin for SokobanPlugin {
                 // Play
                 (
                     handle_sokoban_actions.after(HandleHistoryEvents),
-                    handle_sokoban_events.run_if(on_event::<SokobanEvent>()),
+                    handle_sokoban_events
+                        .run_if(on_event::<SokobanEvent>())
+                        .before(HandleHistoryEvents),
                 )
                     .run_if(in_state(GameState::Play)),
             ),
@@ -204,8 +206,8 @@ impl From<Dir> for IVec2 {
     fn from(direction: Dir) -> IVec2 {
         match direction {
             Dir::Up => IVec2::Y,
-            Dir::Left => IVec2::new(-1, 0),
-            Dir::Down => IVec2::new(0, -1),
+            Dir::Left => IVec2::NEG_X,
+            Dir::Down => IVec2::NEG_Y,
             Dir::Right => IVec2::X,
         }
     }

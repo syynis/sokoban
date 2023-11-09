@@ -1,12 +1,20 @@
 use bevy::prelude::*;
 
-use super::{momentum::Momentum, Pos};
+use super::{
+    momentum::{handle_momentum, Momentum},
+    GameState, Pos,
+};
 
 pub struct RubberPlugin;
 
 impl Plugin for RubberPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, handle_rubber);
+        app.add_systems(
+            Update,
+            handle_rubber
+                .before(handle_momentum)
+                .run_if(in_state(GameState::Play)),
+        );
     }
 }
 
