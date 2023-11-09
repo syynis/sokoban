@@ -32,7 +32,9 @@ impl Plugin for LevelPlugin {
         );
         app.add_systems(
             PostUpdate,
-            react_to_changes.run_if(in_state(GameState::Play)),
+            react_to_changes
+                .run_if(in_state(GameState::Play))
+                .run_if(on_event::<AssetEvent<Levels>>()),
         );
     }
 }
