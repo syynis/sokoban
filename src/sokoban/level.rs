@@ -3,12 +3,11 @@ use std::u8;
 use anyhow::Result;
 use bevy::{
     asset::{AssetLoader, LoadState, LoadedAsset},
-    log,
     prelude::*,
     reflect::{TypePath, TypeUuid},
 };
 use bevy_ecs_tilemap::prelude::*;
-use bevy_pile::tilemap::{access::TilemapAccess, layer::Layer};
+use bevy_pile::tilemap::layer::Layer;
 use serde::Deserialize;
 
 use super::{

@@ -1,10 +1,13 @@
-use bevy::{log, prelude::*};
+use std::time::Duration;
+
+use bevy::{log, prelude::*, time::common_conditions::on_timer};
 
 use super::{
     collision::{CollisionMap, CollisionResult},
     handle_sokoban_events,
     history::HandleHistoryEvents,
-    Dir, Pos,
+    player::Player,
+    Dir, GameState, Pos,
 };
 
 pub struct MomentumPlugin;
@@ -18,8 +21,12 @@ impl Plugin for MomentumPlugin {
                     .run_if(resource_exists::<CollisionMap>())
                     .before(handle_sokoban_events)
                     .before(HandleHistoryEvents),
-                apply_momentum.after(handle_sokoban_events),
-            ),
+                apply_momentum
+                    .after(handle_sokoban_events)
+                    .after(HandleHistoryEvents),
+            )
+                .run_if(on_timer(Duration::from_millis(100)))
+                .run_if(in_state(GameState::Play)),
         );
     }
 }
@@ -73,7 +80,7 @@ pub fn handle_momentum(
     }
 }
 
-pub fn apply_momentum(mut momentum_query: Query<(&mut Pos, &Momentum)>) {
+pub fn apply_momentum(mut momentum_query: Query<(&mut Pos, &Momentum), Without<Player>>) {
     for (mut pos, momentum) in momentum_query.iter_mut() {
         if let Some(dir) = **momentum {
             pos.add_dir(dir);

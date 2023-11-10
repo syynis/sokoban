@@ -5,7 +5,7 @@ use leafwing_input_manager::prelude::*;
 
 use super::{
     handle_sokoban_events,
-    history::{History, HistoryEvent},
+    history::{HandleHistoryEvents, History, HistoryEvent},
     momentum::{any_momentum_left, Momentum},
     Dir, GameState, Pos, Pusher, SokobanBlock, SokobanEvents,
 };
@@ -18,14 +18,13 @@ impl Plugin for PlayerPlugin {
             .add_systems(Startup, setup)
             .add_systems(
                 Update,
-                handle_player_actions
-                    .before(handle_sokoban_events)
-                    .run_if(not(any_momentum_left()))
+                (
+                    handle_player_actions
+                        .before(handle_sokoban_events)
+                        .run_if(not(any_momentum_left())),
+                    handle_player_momentum.after(HandleHistoryEvents),
+                )
                     .run_if(in_state(GameState::Play)),
-            )
-            .add_systems(
-                PostUpdate,
-                clear_player_momentum.run_if(in_state(GameState::Play)),
             );
     }
 }
@@ -139,9 +138,11 @@ pub fn handle_player_actions(
     }
 }
 
-fn clear_player_momentum(mut player_q: Query<&mut Momentum, With<Player>>) {
-    let Ok(mut momentum) = player_q.get_single_mut() else {
-        return;
-    };
-    momentum.take();
+fn handle_player_momentum(mut player_q: Query<(&mut Pos, &mut Momentum), With<Player>>) {
+    if let Ok((mut pos, mut momentum)) = player_q.get_single_mut() {
+        if let Some(dir) = **momentum {
+            pos.add_dir(dir);
+            momentum.take();
+        }
+    }
 }

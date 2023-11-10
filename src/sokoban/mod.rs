@@ -70,7 +70,7 @@ impl Plugin for SokobanPlugin {
                 (log_state_change),
                 // Play
                 (
-                    handle_sokoban_actions.after(HandleHistoryEvents),
+                    (handle_sokoban_actions, undo).after(HandleHistoryEvents),
                     handle_sokoban_events
                         .run_if(on_event::<SokobanEvent>())
                         .before(HandleHistoryEvents),
@@ -132,17 +132,29 @@ fn setup(mut cmds: Commands) {
     ));
 }
 
-fn handle_sokoban_actions(
+fn undo(
     actions: Query<&ActionState<SokobanActions>>,
     mut history_events: EventWriter<HistoryEvent>,
+    mut momentum_query: Query<&mut Momentum>,
+) {
+    let Ok(actions) = actions.get_single() else {
+        return;
+    };
+    if actions.just_pressed(SokobanActions::Rewind) {
+        history_events.send(HistoryEvent::Rewind);
+        for mut momentum in momentum_query.iter_mut() {
+            momentum.take();
+        }
+    }
+}
+
+fn handle_sokoban_actions(
+    actions: Query<&ActionState<SokobanActions>>,
     mut state: ResMut<NextState<GameState>>,
 ) {
     let Some(actions) = actions.get_single().ok() else {
         return;
     };
-    if actions.just_pressed(SokobanActions::Rewind) {
-        history_events.send(HistoryEvent::Rewind)
-    }
     if actions.just_pressed(SokobanActions::QuitLevel) {
         state.set(GameState::LevelSelect)
     }
@@ -175,10 +187,12 @@ impl From<&Pos> for IVec2 {
     }
 }
 
-pub fn copy_pos_to_transform(mut query: Query<(&Pos, &mut Transform)>) {
+pub fn copy_pos_to_transform(mut query: Query<(&Pos, &mut Transform), Changed<Pos>>) {
     for (pos, mut transform) in query.iter_mut() {
-        transform.translation = tile_to_world_pos(pos, &TilemapGridSize { x: 8., y: 8. })
+        let new = tile_to_world_pos(pos, &TilemapGridSize { x: 8., y: 8. })
             .extend(transform.translation.z);
+
+        transform.translation = new;
     }
 }
 
@@ -215,7 +229,7 @@ impl From<Dir> for IVec2 {
 
 #[derive(Debug, Clone, Event)]
 pub enum SokobanEvent {
-    Move { entity: Entity, direction: Dir },
+    Push { pusher: Entity, direction: Dir },
 }
 
 #[derive(SystemParam)]
@@ -225,7 +239,10 @@ pub struct SokobanEvents<'w> {
 
 impl<'w> SokobanEvents<'w> {
     pub fn move_entity(&mut self, entity: Entity, direction: Dir) {
-        self.writer.send(SokobanEvent::Move { entity, direction });
+        self.writer.send(SokobanEvent::Push {
+            pusher: entity,
+            direction,
+        });
     }
 }
 
@@ -235,7 +252,10 @@ fn handle_sokoban_events(
     collision: Res<CollisionMap>,
 ) {
     for ev in sokoban_events.iter() {
-        let SokobanEvent::Move { entity, direction } = ev;
+        let SokobanEvent::Push {
+            pusher: entity,
+            direction,
+        } = ev;
         if let Ok((pos, _)) = sokoban_entities.get(*entity) {
             let push = collision.push_collision(IVec2::from(*pos), *direction);
             if let CollisionResult::Push(push) = push {
