@@ -7,7 +7,13 @@ pub fn cleanup_all_with<T: Component>(mut cmds: Commands, query: Query<Entity, W
 }
 
 #[derive(Component, Deref, DerefMut)]
-pub struct DependOnState<T: States>(pub T);
+pub struct DependOnState<T: States>(pub Vec<T>);
+
+impl<T: States> DependOnState<T> {
+    pub fn single(state: T) -> Self {
+        Self(vec![state])
+    }
+}
 
 pub fn cleanup_on_state_change<T: States>(
     mut cmds: Commands,
@@ -19,7 +25,7 @@ pub fn cleanup_on_state_change<T: States>(
     };
 
     for (entity, on_state) in query.iter() {
-        if **on_state != *next_state {
+        if !on_state.contains(next_state) {
             cmds.entity(entity).despawn_recursive();
         }
     }

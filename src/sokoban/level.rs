@@ -24,7 +24,10 @@ impl Plugin for LevelPlugin {
             .register_type::<AssetCollection>()
             .register_type::<CurrentLevel>();
         app.add_systems(
-            OnEnter(GameState::Play),
+            OnTransition {
+                from: GameState::LevelSelect,
+                to: GameState::Play,
+            },
             (spawn_level, apply_deferred, center_camera_on_level)
                 .chain()
                 .before(init_collision_map),
@@ -127,7 +130,7 @@ fn spawn_level(
             ..default()
         },
         Name::new("Level"),
-        DependOnState(GameState::Play),
+        DependOnState(vec![GameState::Play, GameState::Pause]),
         Layer::World,
     ));
 }
@@ -211,7 +214,7 @@ fn react_to_changes(
                         ..default()
                     },
                     Name::new("Level"),
-                    DependOnState(GameState::Play),
+                    DependOnState(vec![GameState::Play, GameState::Pause]),
                     Layer::World,
                 ));
             }

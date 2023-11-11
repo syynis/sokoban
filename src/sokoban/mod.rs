@@ -18,6 +18,7 @@ use self::{
     level_select::LevelSelectPlugin,
     main_menu::MainMenuPlugin,
     momentum::MomentumPlugin,
+    pause_menu::PauseMenuPlugin,
     player::PlayerPlugin,
     rubber::RubberPlugin,
     sand::SandPlugin,
@@ -33,6 +34,7 @@ pub mod level;
 pub mod level_select;
 pub mod main_menu;
 pub mod momentum;
+pub mod pause_menu;
 pub mod player;
 pub mod rubber;
 pub mod sand;
@@ -55,6 +57,7 @@ impl Plugin for SokobanPlugin {
             MainMenuPlugin,
             LevelSelectPlugin,
             LevelPlugin,
+            PauseMenuPlugin,
         ))
         .add_state::<GameState>()
         .register_type::<Pos>()
@@ -74,6 +77,7 @@ impl Plugin for SokobanPlugin {
                     handle_sokoban_events
                         .run_if(on_event::<SokobanEvent>())
                         .before(HandleHistoryEvents),
+                    pause,
                 )
                     .run_if(in_state(GameState::Play)),
             ),
@@ -98,6 +102,7 @@ pub enum GameState {
     MainMenu,
     LevelSelect,
     Play,
+    Pause,
 }
 
 fn log_state_change(state: Res<State<GameState>>) {
@@ -110,6 +115,7 @@ fn log_state_change(state: Res<State<GameState>>) {
 pub enum SokobanActions {
     Rewind,
     QuitLevel,
+    Pause,
 }
 
 fn sokoban_actions() -> InputMap<SokobanActions> {
@@ -118,6 +124,7 @@ fn sokoban_actions() -> InputMap<SokobanActions> {
 
     input_map.insert(KeyCode::U, Rewind);
     input_map.insert(KeyCode::Escape, QuitLevel);
+    input_map.insert(KeyCode::Q, Pause);
 
     input_map
 }
@@ -145,6 +152,18 @@ fn undo(
         for mut momentum in momentum_query.iter_mut() {
             momentum.take();
         }
+    }
+}
+
+fn pause(
+    actions: Query<&ActionState<SokobanActions>>,
+    mut game_state: ResMut<NextState<GameState>>,
+) {
+    let Ok(actions) = actions.get_single() else {
+        return;
+    };
+    if actions.just_pressed(SokobanActions::Pause) {
+        game_state.set(GameState::Pause)
     }
 }
 

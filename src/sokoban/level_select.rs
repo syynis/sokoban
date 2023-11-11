@@ -104,7 +104,7 @@ impl Command for SpawnLevelSelectButtons {
                     },
                     ..default()
                 },
-                DependOnState(GameState::LevelSelect),
+                DependOnState::single(GameState::LevelSelect),
             ))
             .push_children(&children);
     }
