@@ -21,8 +21,8 @@ impl Plugin for MomentumPlugin {
                     .run_if(resource_exists::<CollisionMap>())
                     .before(handle_sokoban_events)
                     .before(HandleHistoryEvents),
-                apply_momentum
-                    .after(handle_sokoban_events)
+                (apply_momentum, handle_player_momentum)
+                    .chain()
                     .after(HandleHistoryEvents),
             )
                 .run_if(on_timer(Duration::from_millis(100)))
@@ -84,6 +84,15 @@ pub fn apply_momentum(mut momentum_query: Query<(&mut Pos, &Momentum), Without<P
     for (mut pos, momentum) in momentum_query.iter_mut() {
         if let Some(dir) = **momentum {
             pos.add_dir(dir);
+        }
+    }
+}
+
+fn handle_player_momentum(mut player_q: Query<(&mut Pos, &mut Momentum), With<Player>>) {
+    if let Ok((mut pos, mut momentum)) = player_q.get_single_mut() {
+        if let Some(dir) = **momentum {
+            pos.add_dir(dir);
+            momentum.take();
         }
     }
 }

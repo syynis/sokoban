@@ -1,3 +1,4 @@
+
 use bevy::{ecs::system::Command, prelude::*};
 use bevy_ecs_tilemap::prelude::TilemapGridSize;
 use bevy_pile::tilemap::tile_to_world_pos;
@@ -5,7 +6,7 @@ use leafwing_input_manager::prelude::*;
 
 use super::{
     handle_sokoban_events,
-    history::{HandleHistoryEvents, History, HistoryEvent},
+    history::{History, HistoryEvent},
     momentum::{any_momentum_left, Momentum},
     Dir, GameState, Pos, Pusher, SokobanBlock, SokobanEvents,
 };
@@ -18,13 +19,10 @@ impl Plugin for PlayerPlugin {
             .add_systems(Startup, setup)
             .add_systems(
                 Update,
-                (
-                    handle_player_actions
-                        .before(handle_sokoban_events)
-                        .run_if(not(any_momentum_left())),
-                    handle_player_momentum.after(HandleHistoryEvents),
-                )
-                    .run_if(in_state(GameState::Play)),
+                handle_player_actions
+                    .before(handle_sokoban_events)
+                    .run_if(not(any_momentum_left()))
+                    .run_if(in_state(GameState::Play))
             );
     }
 }
@@ -135,14 +133,5 @@ pub fn handle_player_actions(
         .for_each(|action| sokoban.move_entity(player, Dir::from(*action)));
     if !player_actions.get_just_pressed().is_empty() {
         history_events.send(HistoryEvent::Record)
-    }
-}
-
-fn handle_player_momentum(mut player_q: Query<(&mut Pos, &mut Momentum), With<Player>>) {
-    if let Ok((mut pos, mut momentum)) = player_q.get_single_mut() {
-        if let Some(dir) = **momentum {
-            pos.add_dir(dir);
-            momentum.take();
-        }
     }
 }
