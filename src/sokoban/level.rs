@@ -25,7 +25,7 @@ impl Plugin for LevelPlugin {
             .register_type::<CurrentLevel>();
         app.add_systems(
             OnTransition {
-                from: GameState::LevelSelect,
+                from: GameState::LevelTransition,
                 to: GameState::Play,
             },
             (spawn_level, apply_deferred, center_camera_on_level)
@@ -129,10 +129,11 @@ fn spawn_level(
             tile_size,
             ..default()
         },
-        Name::new("Level"),
+        Name::new(format!("Level {}", **current_level)),
         DependOnState(vec![GameState::Play, GameState::Pause]),
         Layer::World,
     ));
+    bevy::log::info!("Spawning tile map");
 }
 
 fn react_to_changes(

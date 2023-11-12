@@ -23,6 +23,23 @@ impl Plugin for LevelSelectPlugin {
 #[derive(Component, Deref, DerefMut)]
 struct LevelButton(pub usize);
 
+fn handle_buttons(
+    mut cmds: Commands,
+    mut game_state: ResMut<NextState<GameState>>,
+    buttons: Query<(&LevelButton, &Interaction), Changed<Interaction>>,
+) {
+    buttons
+        .iter()
+        .for_each(|(level, interaction)| match interaction {
+            Interaction::Pressed => {
+                cmds.insert_resource(CurrentLevel(**level));
+                game_state.set(GameState::LevelTransition);
+            }
+            Interaction::Hovered => {}
+            Interaction::None => {}
+        });
+}
+
 fn spawn_level_select(mut cmds: Commands) {
     cmds.add(SpawnLevelSelectButtons);
 }
@@ -108,21 +125,4 @@ impl Command for SpawnLevelSelectButtons {
             ))
             .push_children(&children);
     }
-}
-
-fn handle_buttons(
-    mut cmds: Commands,
-    mut game_state: ResMut<NextState<GameState>>,
-    buttons: Query<(&LevelButton, &Interaction), Changed<Interaction>>,
-) {
-    buttons
-        .iter()
-        .for_each(|(level, interaction)| match interaction {
-            Interaction::Pressed => {
-                cmds.insert_resource(CurrentLevel(**level));
-                game_state.set(GameState::Play);
-            }
-            Interaction::Hovered => {}
-            Interaction::None => {}
-        });
 }

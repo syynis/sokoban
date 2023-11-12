@@ -9,7 +9,13 @@ pub struct CollisionPlugin;
 impl Plugin for CollisionPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<CollisionMap>()
-            .add_systems(OnEnter(GameState::Play), init_collision_map)
+            .add_systems(
+                OnTransition {
+                    from: GameState::LevelTransition,
+                    to: GameState::Play,
+                },
+                init_collision_map,
+            )
             .add_systems(
                 PostUpdate,
                 sync_collision_map.run_if(in_state(GameState::Play)),
@@ -37,6 +43,7 @@ pub fn init_collision_map(
     sokoban_entities: Query<(Entity, &Pos, &SokobanBlock)>,
 ) {
     let Some(size) = tilemap.get_single().ok() else {
+        log::warn!("Not exactly one tilemap");
         return;
     };
     log::info!("Initialized collision map");

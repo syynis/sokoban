@@ -25,7 +25,7 @@ impl Plugin for MomentumPlugin {
                     .chain()
                     .after(HandleHistoryEvents),
             )
-                .run_if(on_timer(Duration::from_millis(100)))
+                .run_if(on_timer(Duration::from_millis(50)))
                 .run_if(in_state(GameState::Play)),
         );
     }

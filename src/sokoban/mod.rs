@@ -16,6 +16,7 @@ use self::{
     history::{HandleHistoryEvents, History, HistoryEvent, HistoryPlugin},
     level::LevelPlugin,
     level_select::LevelSelectPlugin,
+    level_transition::LevelTransitionPlugin,
     main_menu::MainMenuPlugin,
     momentum::MomentumPlugin,
     pause_menu::PauseMenuPlugin,
@@ -32,6 +33,7 @@ pub mod goal;
 pub mod history;
 pub mod level;
 pub mod level_select;
+pub mod level_transition;
 pub mod main_menu;
 pub mod momentum;
 pub mod pause_menu;
@@ -58,6 +60,7 @@ impl Plugin for SokobanPlugin {
             LevelSelectPlugin,
             LevelPlugin,
             PauseMenuPlugin,
+            LevelTransitionPlugin,
         ))
         .add_state::<GameState>()
         .register_type::<Pos>()
@@ -69,8 +72,6 @@ impl Plugin for SokobanPlugin {
         .add_systems(
             Update,
             (
-                // General
-                (log_state_change),
                 // Play
                 (
                     (handle_sokoban_actions, undo).after(HandleHistoryEvents),
@@ -82,18 +83,14 @@ impl Plugin for SokobanPlugin {
                     .run_if(in_state(GameState::Play)),
             ),
         )
-        .add_systems(PostUpdate, cleanup_on_state_change::<GameState>)
+        .add_systems(
+            StateTransition,
+            (cleanup_on_state_change::<GameState>, apply_deferred)
+                .chain()
+                .before(apply_state_transition::<GameState>),
+        )
         .add_systems(PostUpdate, copy_pos_to_transform);
     }
-}
-
-#[derive(ScheduleLabel, Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub struct MovementSchedule;
-
-#[derive(SystemSet, Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum MovementSet {
-    Step,
-    Sync,
 }
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
@@ -101,14 +98,9 @@ pub enum GameState {
     #[default]
     MainMenu,
     LevelSelect,
+    LevelTransition,
     Play,
     Pause,
-}
-
-fn log_state_change(state: Res<State<GameState>>) {
-    if state.is_changed() {
-        log::info!("{:?}", state);
-    }
 }
 
 #[derive(Actionlike, Clone, Copy, Hash, Debug, PartialEq, Eq, Reflect)]

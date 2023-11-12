@@ -19,6 +19,8 @@ pub fn cleanup_on_state_change<T: States>(
     mut cmds: Commands,
     query: Query<(Entity, &DependOnState<T>)>,
     next_state: Res<NextState<T>>,
+    current_state: Res<State<T>>,
+    names: Query<&Name>,
 ) {
     let Some(next_state) = &next_state.0 else {
         return;
@@ -27,6 +29,14 @@ pub fn cleanup_on_state_change<T: States>(
     for (entity, on_state) in query.iter() {
         if !on_state.contains(next_state) {
             cmds.entity(entity).despawn_recursive();
+            bevy::log::info!(
+                "Cleanup {} in {:?} to {:?}",
+                names
+                    .get(entity)
+                    .map_or(format!("{:?}", entity), |name| name.to_string()),
+                **current_state,
+                next_state
+            );
         }
     }
 }

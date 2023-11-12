@@ -17,6 +17,18 @@ enum MainMenuButton {
     Exit,
 }
 
+fn handle_buttons(
+    mut game_state: ResMut<NextState<GameState>>,
+    buttons: Query<(&MainMenuButton, &Interaction), Changed<Interaction>>,
+    mut events: EventWriter<AppExit>,
+) {
+    buttons.iter().for_each(|button| match button {
+        (MainMenuButton::Play, Interaction::Pressed) => game_state.set(GameState::LevelSelect),
+        (MainMenuButton::Exit, Interaction::Pressed) => events.send(AppExit),
+        _ => {}
+    });
+}
+
 fn spawn_main_menu(mut cmds: Commands) {
     cmds.add(SpawnMainMenuButtons);
 }
@@ -110,16 +122,4 @@ impl Command for SpawnMainMenuButtons {
                     });
             });
     }
-}
-
-fn handle_buttons(
-    mut game_state: ResMut<NextState<GameState>>,
-    buttons: Query<(&MainMenuButton, &Interaction), Changed<Interaction>>,
-    mut events: EventWriter<AppExit>,
-) {
-    buttons.iter().for_each(|button| match button {
-        (MainMenuButton::Play, Interaction::Pressed) => game_state.set(GameState::LevelSelect),
-        (MainMenuButton::Exit, Interaction::Pressed) => events.send(AppExit),
-        _ => {}
-    });
 }

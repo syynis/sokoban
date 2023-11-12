@@ -2,6 +2,7 @@ use bevy::{ecs::system::Command, prelude::*};
 use leafwing_input_manager::prelude::*;
 
 use super::{
+    cleanup::DependOnState,
     handle_sokoban_events,
     history::{History, HistoryEvent},
     momentum::{any_momentum_left, Momentum},
@@ -64,6 +65,7 @@ impl Command for SpawnPlayer {
     fn apply(self, world: &mut World) {
         let asset_server = world.resource::<AssetServer>();
         let player_handle: Handle<Image> = asset_server.load("player.png");
+
         world
             .entity_mut(self.tilemap_entity)
             .with_children(|child_builder| {

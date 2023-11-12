@@ -1,7 +1,9 @@
+use std::ops::AddAssign;
+
 use bevy::{ecs::system::Command, prelude::*};
 use leafwing_input_manager::prelude::ActionState;
 
-use super::{cleanup::DependOnState, GameState, SokobanActions};
+use super::{cleanup::DependOnState, level::CurrentLevel, GameState, SokobanActions};
 
 pub struct PauseMenuPlugin;
 
@@ -37,8 +39,25 @@ fn unpause(
     }
 }
 
-fn handle_buttons(buttons: Query<(&PauseMenuButton, &Interaction), Changed<Interaction>>) {
+fn handle_buttons(
+    buttons: Query<(&PauseMenuButton, &Interaction), Changed<Interaction>>,
+    mut game_state: ResMut<NextState<GameState>>,
+    mut current_level: ResMut<CurrentLevel>,
+) {
     buttons.iter().for_each(|button| match button {
+        (PauseMenuButton::ReturnToMain, Interaction::Pressed) => {
+            game_state.set(GameState::MainMenu);
+        }
+        (PauseMenuButton::NextLevel, Interaction::Pressed) => {
+            bevy::log::info!("Next level");
+            current_level.add_assign(1);
+            game_state.set(GameState::LevelTransition)
+        }
+        (PauseMenuButton::PrevLevel, Interaction::Pressed) => {
+            bevy::log::info!("Prev level");
+            current_level.0 = current_level.saturating_sub(1);
+            game_state.set(GameState::LevelTransition)
+        }
         _ => {}
     });
 }
