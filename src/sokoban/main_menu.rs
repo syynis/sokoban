@@ -47,7 +47,7 @@ impl Command for SpawnMainMenuButtons {
                         align_content: AlignContent::Center,
                         margin: UiRect::all(Val::Auto),
                         justify_content: JustifyContent::Center,
-                        flex_direction: FlexDirection::ColumnReverse,
+                        flex_direction: FlexDirection::Column,
                         ..default()
                     },
                     ..default()
@@ -75,11 +75,11 @@ impl Command for SpawnMainMenuButtons {
                             focus_policy: bevy::ui::FocusPolicy::Block,
                             ..default()
                         },
-                        MainMenuButton::Exit,
+                        MainMenuButton::Play,
                     ))
                     .with_children(|parent| {
                         parent.spawn(TextBundle::from_section(
-                            "Exit",
+                            "Play",
                             TextStyle {
                                 font_size: 20.,
                                 color: Color::WHITE,
@@ -108,11 +108,11 @@ impl Command for SpawnMainMenuButtons {
                             focus_policy: bevy::ui::FocusPolicy::Block,
                             ..default()
                         },
-                        MainMenuButton::Play,
+                        MainMenuButton::Exit,
                     ))
                     .with_children(|parent| {
                         parent.spawn(TextBundle::from_section(
-                            "Play",
+                            "Exit",
                             TextStyle {
                                 font_size: 20.,
                                 color: Color::WHITE,

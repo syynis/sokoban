@@ -1,8 +1,4 @@
-use bevy::{
-    ecs::{schedule::ScheduleLabel, system::SystemParam},
-    log,
-    prelude::*,
-};
+use bevy::{ecs::system::SystemParam, prelude::*};
 use bevy_ecs_tilemap::{prelude::TilemapGridSize, tiles::TilePos};
 use bevy_pile::tilemap::tile_to_world_pos;
 use leafwing_input_manager::prelude::*;
@@ -29,6 +25,7 @@ use self::{
 pub mod ball;
 pub mod cleanup;
 pub mod collision;
+pub mod event_scheduler;
 pub mod goal;
 pub mod history;
 pub mod level;
