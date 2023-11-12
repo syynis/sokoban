@@ -1,7 +1,4 @@
-
 use bevy::{ecs::system::Command, prelude::*};
-use bevy_ecs_tilemap::prelude::TilemapGridSize;
-use bevy_pile::tilemap::tile_to_world_pos;
 use leafwing_input_manager::prelude::*;
 
 use super::{
@@ -22,7 +19,7 @@ impl Plugin for PlayerPlugin {
                 handle_player_actions
                     .before(handle_sokoban_events)
                     .run_if(not(any_momentum_left()))
-                    .run_if(in_state(GameState::Play))
+                    .run_if(in_state(GameState::Play)),
             );
     }
 }
@@ -79,10 +76,7 @@ impl Command for SpawnPlayer {
                     Pusher,
                     SpriteBundle {
                         texture: player_handle,
-                        transform: Transform::from_translation(
-                            tile_to_world_pos(&self.pos, &TilemapGridSize { x: 8., y: 8. })
-                                .extend(1.),
-                        ),
+                        transform: Transform::from_translation(Vec3::Z),
                         ..default()
                     },
                     Momentum::default(),

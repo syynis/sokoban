@@ -1,6 +1,4 @@
 use bevy::{ecs::system::Command, prelude::*};
-use bevy_ecs_tilemap::prelude::TilemapGridSize;
-use bevy_pile::tilemap::tile_to_world_pos;
 
 use super::{history::History, momentum::Momentum, Pos, SokobanBlock};
 
@@ -37,10 +35,7 @@ impl Command for SpawnBall {
                     SokobanBlock::Dynamic,
                     SpriteBundle {
                         texture: ball_handle,
-                        transform: Transform::from_translation(
-                            tile_to_world_pos(&self.pos, &TilemapGridSize { x: 8., y: 8. })
-                                .extend(1.),
-                        ),
+                        transform: Transform::from_translation(Vec3::Z),
                         ..default()
                     },
                     Momentum::default(),
