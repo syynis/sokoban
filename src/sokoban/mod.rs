@@ -62,7 +62,7 @@ impl Plugin for SokobanPlugin {
             (
                 // Play
                 (
-                    undo.after(HandleHistoryEvents),
+                    handle_history.after(HandleHistoryEvents),
                     handle_sokoban_events
                         .run_if(on_event::<SokobanEvent>())
                         .before(HandleHistoryEvents),
@@ -91,17 +91,18 @@ pub enum GameState {
 
 #[derive(Actionlike, Clone, Copy, Hash, Debug, PartialEq, Eq, Reflect)]
 pub enum SokobanActions {
-    Rewind,
+    Undo,
     Escape,
-    Pause,
+    Reset,
 }
 
 fn sokoban_actions() -> InputMap<SokobanActions> {
     use SokobanActions::*;
     let mut input_map = InputMap::default();
 
-    input_map.insert(KeyCode::U, Rewind);
+    input_map.insert(KeyCode::U, Undo);
     input_map.insert(KeyCode::Escape, Escape);
+    input_map.insert(KeyCode::R, Reset);
 
     input_map
 }
@@ -116,7 +117,7 @@ fn setup(mut cmds: Commands) {
     ));
 }
 
-fn undo(
+fn handle_history(
     actions: Query<&ActionState<SokobanActions>>,
     mut history_events: EventWriter<HistoryEvent>,
     mut momentum_query: Query<&mut Momentum>,
@@ -124,8 +125,13 @@ fn undo(
     let Ok(actions) = actions.get_single() else {
         return;
     };
-    if actions.just_pressed(SokobanActions::Rewind) {
+    if actions.just_pressed(SokobanActions::Undo) {
         history_events.send(HistoryEvent::Rewind);
+        for mut momentum in momentum_query.iter_mut() {
+            momentum.take();
+        }
+    } else if actions.just_pressed(SokobanActions::Reset) {
+        history_events.send(HistoryEvent::Reset);
         for mut momentum in momentum_query.iter_mut() {
             momentum.take();
         }
