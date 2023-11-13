@@ -250,7 +250,7 @@ fn handle_sokoban_events(
     mut sokoban_events: EventReader<SokobanEvent>,
     collision: Res<CollisionMap>,
 ) {
-    for ev in sokoban_events.iter() {
+    for ev in sokoban_events.read() {
         let SokobanEvent::Push {
             pusher: entity,
             direction,

@@ -1,14 +1,12 @@
-use std::u8;
-
-use anyhow::Result;
 use bevy::{
-    asset::{AssetLoader, LoadState, LoadedAsset},
+    asset::{AssetLoader, AsyncReadExt, LoadState},
     prelude::*,
     reflect::{TypePath, TypeUuid},
 };
 use bevy_ecs_tilemap::prelude::*;
 use bevy_pile::tilemap::layer::Layer;
 use serde::Deserialize;
+use thiserror::Error;
 
 use super::{
     ball::SpawnBall,
@@ -23,7 +21,8 @@ pub struct LevelPlugin;
 
 impl Plugin for LevelPlugin {
     fn build(&self, app: &mut App) {
-        app.init_asset_loader::<LevelLoader>().add_asset::<Levels>();
+        app.register_asset_loader(LevelLoader)
+            .init_asset::<Levels>();
         app.register_type::<Level>()
             .register_type::<AssetCollection>()
             .register_type::<CurrentLevel>();
@@ -83,7 +82,7 @@ fn spawn_level(
     // TODO Implement asset loading to guarantee that nothing happens before assets are loaded at startup
     if !matches!(
         asset_server.get_load_state(levels_handle),
-        LoadState::Loaded
+        Some(LoadState::Loaded)
     ) {
         return;
     }
@@ -147,11 +146,11 @@ fn react_to_changes(
     levels_assets: Res<Assets<Levels>>,
     asset_collection: Res<AssetCollection>,
 ) {
-    for ev in asset_events.iter() {
+    for ev in asset_events.read() {
         match ev {
-            AssetEvent::Modified { handle } => {
+            AssetEvent::Modified { id } => {
                 let levels = levels_assets
-                    .get(handle)
+                    .get(*id)
                     .expect("Asset was modified so it should exist");
                 let level = levels.get(**current_level).unwrap();
                 cmds.entity(old_tilemap.get_single().unwrap())
@@ -222,8 +221,9 @@ fn react_to_changes(
                     Layer::World,
                 ));
             }
-            AssetEvent::Created { handle: _ } => {}
-            AssetEvent::Removed { handle: _ } => {}
+            AssetEvent::Added { id: _ } => {}
+            AssetEvent::Removed { id: _ } => {}
+            AssetEvent::LoadedWithDependencies { id: _ } => {}
         }
     }
 }
@@ -309,7 +309,7 @@ impl From<TileKind> for TileTextureIndex {
     }
 }
 
-#[derive(TypePath, TypeUuid, Debug, Deserialize, Deref, DerefMut)]
+#[derive(TypePath, TypeUuid, Debug, Deserialize, Deref, DerefMut, Asset)]
 #[uuid = "39cadc56-aa9c-4543-8540-a018b74b5052"]
 pub struct Levels(pub Vec<Level>);
 
@@ -319,14 +319,30 @@ struct StringLevels(pub Vec<StringLevel>);
 #[derive(Default)]
 pub struct LevelLoader;
 
+#[non_exhaustive]
+#[derive(Debug, Error)]
+pub enum LevelLoaderError {
+    #[error("Could not read the file: {0}")]
+    Io(#[from] std::io::Error),
+    #[error("Could not parse the ron: {0}")]
+    RonError(#[from] ron::error::SpannedError),
+}
+
 impl AssetLoader for LevelLoader {
+    type Asset = Levels;
+    type Settings = ();
+    type Error = LevelLoaderError;
+
     fn load<'a>(
         &'a self,
-        bytes: &'a [u8],
-        load_context: &'a mut bevy::asset::LoadContext,
-    ) -> bevy::utils::BoxedFuture<'a, Result<(), anyhow::Error>> {
+        reader: &'a mut bevy::asset::io::Reader,
+        _settings: &'a Self::Settings,
+        _load_context: &'a mut bevy::asset::LoadContext,
+    ) -> bevy::utils::BoxedFuture<'a, std::result::Result<Self::Asset, Self::Error>> {
         Box::pin(async move {
-            let string_levels = ron::de::from_bytes::<StringLevels>(bytes)?;
+            let mut bytes = Vec::new();
+            reader.read_to_end(&mut bytes).await?;
+            let string_levels = ron::de::from_bytes::<StringLevels>(&bytes)?;
 
             let levels = Levels(
                 string_levels
@@ -344,9 +360,8 @@ impl AssetLoader for LevelLoader {
                     })
                     .collect::<Vec<Level>>(),
             );
-            load_context.set_default_asset(LoadedAsset::new(levels));
 
-            Ok(())
+            Ok(levels)
         })
     }
 

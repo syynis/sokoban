@@ -4,17 +4,18 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bevy = { version = "0.11.2" , features = ["dynamic_linking"] }
-bevy-inspector-egui = "0.19"
-leafwing-input-manager = "0.10"
-bevy_pancam = {version = "0.9", features = ["bevy_egui"]}
-bevy_ecs_tilemap = {git = "https://github.com/StarArawn/bevy_ecs_tilemap", branch = "main"}
+bevy = { version = "0.12" , features = ["dynamic_linking"] }
+bevy-inspector-egui = "0.21"
+leafwing-input-manager = "0.11.1"
+bevy_pancam = {version = "0.10", features = ["bevy_egui"]}
+#bevy_ecs_tilemap = {git = "https://github.com/StarArawn/bevy_ecs_tilemap", branch = "main"}
+bevy_ecs_tilemap = {git = "https://github.com/divark/bevy_ecs_tilemap", branch = "0.12-fixes"}
 bevy_pile = {git = "https://github.com/syynis/bevy_pile", branch = "main"}
 serde = "1.0"
 anyhow = "1.0"
 ron = "0.8"
-futures-lite = "1.13.0"
-bevy_tweening = "0.8"
+bevy_tweening = "0.9"
+thiserror = "1.0"
 
 [profile.dev]
 opt-level = 1

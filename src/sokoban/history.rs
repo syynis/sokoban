@@ -34,7 +34,7 @@ fn handle_history_commands<C: Component + Clone>(
     mut history_query: Query<(&mut History<C>, &mut C)>,
     mut history_events: EventReader<HistoryEvent>,
 ) {
-    for ev in history_events.iter() {
+    for ev in history_events.read() {
         match ev {
             HistoryEvent::Record => {
                 for (mut history, component) in history_query.iter_mut() {

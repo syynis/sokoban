@@ -1,6 +1,4 @@
-use std::time::Duration;
-
-use bevy::{asset::ChangeWatcher, log::LogPlugin, prelude::*};
+use bevy::{log::LogPlugin, prelude::*};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_pancam::{PanCam, PanCamPlugin};
 use bevy_pile::{cursor::WorldCursorPlugin, tilemap::TileCursorPlugin};
@@ -17,12 +15,6 @@ fn main() {
     app.add_plugins((
         DefaultPlugins
             .set(ImagePlugin::default_nearest())
-            .set(AssetPlugin {
-                watch_for_changes: Some(ChangeWatcher {
-                    delay: Duration::from_secs_f64(0.5),
-                }),
-                ..default()
-            })
             .set(LogPlugin {
                 level: bevy::log::Level::DEBUG,
                 filter: "info,wgpu_core=warn,wgpu_hal=warn,sokoban=debug".into(),
