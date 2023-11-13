@@ -102,7 +102,7 @@ fn spawn_level_card(
             ..default()
         });
     });
-    level_transition_scheduler.schedule(LevelTransitionEvent::End, Duration::from_millis(1500));
+    level_transition_scheduler.schedule(LevelTransitionEvent::End, Duration::from_millis(50));
 }
 
 fn transition(

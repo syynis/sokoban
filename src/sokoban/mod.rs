@@ -8,7 +8,6 @@ use crate::sokoban::momentum::Momentum;
 use self::{
     cleanup::cleanup_on_state_change,
     collision::{CollisionMap, CollisionPlugin, CollisionResult},
-    goal::GoalPlugin,
     history::{HandleHistoryEvents, History, HistoryEvent, HistoryPlugin},
     level::LevelPlugin,
     level_select::LevelSelectPlugin,
@@ -17,16 +16,13 @@ use self::{
     momentum::MomentumPlugin,
     pause_menu::PauseMenuPlugin,
     player::PlayerPlugin,
-    rubber::RubberPlugin,
-    sand::SandPlugin,
-    void::VoidPlugin,
+    tile_behaviour::TileBehaviourPlugin,
 };
 
 pub mod ball;
 pub mod cleanup;
 pub mod collision;
 pub mod event_scheduler;
-pub mod goal;
 pub mod history;
 pub mod level;
 pub mod level_select;
@@ -35,9 +31,7 @@ pub mod main_menu;
 pub mod momentum;
 pub mod pause_menu;
 pub mod player;
-pub mod rubber;
-pub mod sand;
-pub mod void;
+pub mod tile_behaviour;
 
 pub struct SokobanPlugin;
 
@@ -48,16 +42,13 @@ impl Plugin for SokobanPlugin {
             HistoryPlugin::<Pos>::default(),
             InputManagerPlugin::<SokobanActions>::default(),
             MomentumPlugin,
-            GoalPlugin,
             CollisionPlugin,
-            SandPlugin,
-            VoidPlugin,
-            RubberPlugin,
             MainMenuPlugin,
             LevelSelectPlugin,
             LevelPlugin,
             PauseMenuPlugin,
             LevelTransitionPlugin,
+            TileBehaviourPlugin,
         ))
         .add_state::<GameState>()
         .register_type::<Pos>()

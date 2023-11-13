@@ -11,8 +11,12 @@ use bevy_pile::tilemap::layer::Layer;
 use serde::Deserialize;
 
 use super::{
-    ball::SpawnBall, cleanup::DependOnState, collision::init_collision_map, goal::Goal,
-    player::SpawnPlayer, rubber::Rubber, sand::Sand, void::Void, GameState, Pos, SokobanBlock,
+    ball::SpawnBall,
+    cleanup::DependOnState,
+    collision::init_collision_map,
+    player::SpawnPlayer,
+    tile_behaviour::{Goal, Rubber, Sand, Void},
+    GameState, Pos, SokobanBlock,
 };
 
 pub struct LevelPlugin;
