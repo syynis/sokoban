@@ -29,7 +29,7 @@ pub fn cleanup_on_state_change<T: States>(
     for (entity, on_state) in query.iter() {
         if !on_state.contains(next_state) {
             cmds.entity(entity).despawn_recursive();
-            bevy::log::info!(
+            bevy::log::debug!(
                 "Cleanup {} in {:?} to {:?}",
                 names
                     .get(entity)

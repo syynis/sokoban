@@ -49,12 +49,10 @@ fn handle_buttons(
             game_state.set(GameState::MainMenu);
         }
         (PauseMenuButton::NextLevel, Interaction::Pressed) => {
-            bevy::log::info!("Next level");
             current_level.add_assign(1);
             game_state.set(GameState::LevelTransition)
         }
         (PauseMenuButton::PrevLevel, Interaction::Pressed) => {
-            bevy::log::info!("Prev level");
             current_level.0 = current_level.saturating_sub(1);
             game_state.set(GameState::LevelTransition)
         }

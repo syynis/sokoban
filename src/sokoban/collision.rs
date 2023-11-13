@@ -46,7 +46,7 @@ pub fn init_collision_map(
         log::warn!("Not exactly one tilemap");
         return;
     };
-    log::info!("Initialized collision map");
+    log::debug!("Initialized collision map");
     let mut map = Grid::new(IVec2::new(size.x as i32, size.y as i32), None);
     for (entity, pos, block) in sokoban_entities.iter() {
         let pos = IVec2::from(pos);

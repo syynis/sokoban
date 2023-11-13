@@ -137,7 +137,6 @@ fn spawn_level(
         DependOnState(vec![GameState::Play, GameState::Pause]),
         Layer::World,
     ));
-    bevy::log::info!("Spawning tile map");
 }
 
 fn react_to_changes(

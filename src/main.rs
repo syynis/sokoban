@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use bevy::{asset::ChangeWatcher, prelude::*};
+use bevy::{asset::ChangeWatcher, log::LogPlugin, prelude::*};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_pancam::{PanCam, PanCamPlugin};
 use bevy_pile::{cursor::WorldCursorPlugin, tilemap::TileCursorPlugin};
@@ -22,6 +22,10 @@ fn main() {
                     delay: Duration::from_secs_f64(0.5),
                 }),
                 ..default()
+            })
+            .set(LogPlugin {
+                level: bevy::log::Level::DEBUG,
+                filter: "info,wgpu_core=warn,wgpu_hal=warn,sokoban=debug".into(),
             }),
         PanCamPlugin,
         WorldCursorPlugin::<PanCam>::default(),
