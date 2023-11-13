@@ -12,11 +12,14 @@ pub struct LevelSelectPlugin;
 
 impl Plugin for LevelSelectPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(GameState::LevelSelect), spawn_level_select)
-            .add_systems(
-                Update,
-                handle_buttons.run_if(in_state(GameState::LevelSelect)),
-            );
+        app.add_systems(
+            OnEnter(GameState::LevelSelect),
+            (spawn_level_select, apply_deferred).chain(),
+        )
+        .add_systems(
+            Update,
+            handle_buttons.run_if(in_state(GameState::LevelSelect)),
+        );
     }
 }
 
@@ -54,8 +57,8 @@ impl Command for SpawnLevelSelectButtons {
             .get(&assets.levels)
             .expect("Level assets should be loaded")
             .len();
-        let rows = 4;
-        let cols = 4;
+        let cols = 5;
+        let rows = amount_levels / cols;
 
         let mut children = Vec::new();
         for r in 0..rows {

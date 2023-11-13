@@ -6,8 +6,11 @@ pub struct MainMenuPlugin;
 
 impl Plugin for MainMenuPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(GameState::MainMenu), spawn_main_menu)
-            .add_systems(Update, handle_buttons.run_if(in_state(GameState::MainMenu)));
+        app.add_systems(
+            OnEnter(GameState::MainMenu),
+            (spawn_main_menu, apply_deferred).chain(),
+        )
+        .add_systems(Update, handle_buttons.run_if(in_state(GameState::MainMenu)));
     }
 }
 

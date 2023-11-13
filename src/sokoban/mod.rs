@@ -62,20 +62,18 @@ impl Plugin for SokobanPlugin {
             (
                 // Play
                 (
-                    (handle_sokoban_actions, undo).after(HandleHistoryEvents),
+                    undo.after(HandleHistoryEvents),
                     handle_sokoban_events
                         .run_if(on_event::<SokobanEvent>())
                         .before(HandleHistoryEvents),
-                    pause,
                 )
                     .run_if(in_state(GameState::Play)),
+                escape,
             ),
         )
         .add_systems(
             StateTransition,
-            (cleanup_on_state_change::<GameState>, apply_deferred)
-                .chain()
-                .before(apply_state_transition::<GameState>),
+            cleanup_on_state_change::<GameState>.before(apply_state_transition::<GameState>),
         )
         .add_systems(PostUpdate, copy_pos_to_transform);
     }
@@ -94,7 +92,7 @@ pub enum GameState {
 #[derive(Actionlike, Clone, Copy, Hash, Debug, PartialEq, Eq, Reflect)]
 pub enum SokobanActions {
     Rewind,
-    QuitLevel,
+    Escape,
     Pause,
 }
 
@@ -103,8 +101,7 @@ fn sokoban_actions() -> InputMap<SokobanActions> {
     let mut input_map = InputMap::default();
 
     input_map.insert(KeyCode::U, Rewind);
-    input_map.insert(KeyCode::Escape, QuitLevel);
-    input_map.insert(KeyCode::Q, Pause);
+    input_map.insert(KeyCode::Escape, Escape);
 
     input_map
 }
@@ -135,27 +132,21 @@ fn undo(
     }
 }
 
-fn pause(
-    actions: Query<&ActionState<SokobanActions>>,
-    mut game_state: ResMut<NextState<GameState>>,
-) {
-    let Ok(actions) = actions.get_single() else {
-        return;
-    };
-    if actions.just_pressed(SokobanActions::Pause) {
-        game_state.set(GameState::Pause)
-    }
-}
-
-fn handle_sokoban_actions(
+fn escape(
     actions: Query<&ActionState<SokobanActions>>,
     mut state: ResMut<NextState<GameState>>,
+    current_state: Res<State<GameState>>,
 ) {
     let Some(actions) = actions.get_single().ok() else {
         return;
     };
-    if actions.just_pressed(SokobanActions::QuitLevel) {
-        state.set(GameState::LevelSelect)
+    if actions.just_pressed(SokobanActions::Escape) {
+        match **current_state {
+            GameState::LevelSelect => state.set(GameState::MainMenu),
+            GameState::Play => state.set(GameState::Pause),
+            GameState::Pause => state.set(GameState::Play),
+            _ => {}
+        }
     }
 }
 

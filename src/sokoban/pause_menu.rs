@@ -1,42 +1,50 @@
 use std::ops::AddAssign;
 
 use bevy::{ecs::system::Command, prelude::*};
-use leafwing_input_manager::prelude::ActionState;
 
-use super::{cleanup::DependOnState, level::CurrentLevel, GameState, SokobanActions};
+use super::{cleanup::DependOnState, level::CurrentLevel, GameState};
 
 pub struct PauseMenuPlugin;
 
 impl Plugin for PauseMenuPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnEnter(GameState::Pause), setup)
-            .add_systems(
-                Update,
-                (handle_buttons, unpause).run_if(in_state(GameState::Pause)),
-            );
+            .add_systems(Update, handle_buttons.run_if(in_state(GameState::Pause)));
     }
 }
 
-#[derive(Component)]
+const ALL_BUTTONS: [PauseMenuButton; 5] = [
+    PauseMenuButton::Resume,
+    PauseMenuButton::NextLevel,
+    PauseMenuButton::PrevLevel,
+    PauseMenuButton::ReturnToLevelSelect,
+    PauseMenuButton::ReturnToMain,
+];
+
+#[derive(Component, Copy, Clone)]
 enum PauseMenuButton {
-    ReturnToMain,
+    Resume,
     NextLevel,
     PrevLevel,
+    ReturnToLevelSelect,
+    ReturnToMain,
+}
+
+impl PauseMenuButton {
+    pub fn name(&self) -> String {
+        match self {
+            PauseMenuButton::Resume => "Resume",
+            PauseMenuButton::NextLevel => "Next Level",
+            PauseMenuButton::PrevLevel => "Previous Level",
+            PauseMenuButton::ReturnToLevelSelect => "Level Select",
+            PauseMenuButton::ReturnToMain => "Main Menu",
+        }
+        .to_owned()
+    }
 }
 
 fn setup(mut cmds: Commands) {
     cmds.add(SpawnPauseMenuButtons);
-}
-fn unpause(
-    actions: Query<&ActionState<SokobanActions>>,
-    mut game_state: ResMut<NextState<GameState>>,
-) {
-    let Ok(actions) = actions.get_single() else {
-        return;
-    };
-    if actions.just_pressed(SokobanActions::Pause) {
-        game_state.set(GameState::Play)
-    }
 }
 
 fn handle_buttons(
@@ -45,8 +53,8 @@ fn handle_buttons(
     mut current_level: ResMut<CurrentLevel>,
 ) {
     buttons.iter().for_each(|button| match button {
-        (PauseMenuButton::ReturnToMain, Interaction::Pressed) => {
-            game_state.set(GameState::MainMenu);
+        (PauseMenuButton::Resume, Interaction::Pressed) => {
+            game_state.set(GameState::Play);
         }
         (PauseMenuButton::NextLevel, Interaction::Pressed) => {
             current_level.add_assign(1);
@@ -55,6 +63,12 @@ fn handle_buttons(
         (PauseMenuButton::PrevLevel, Interaction::Pressed) => {
             current_level.0 = current_level.saturating_sub(1);
             game_state.set(GameState::LevelTransition)
+        }
+        (PauseMenuButton::ReturnToLevelSelect, Interaction::Pressed) => {
+            game_state.set(GameState::LevelSelect);
+        }
+        (PauseMenuButton::ReturnToMain, Interaction::Pressed) => {
+            game_state.set(GameState::MainMenu);
         }
         _ => {}
     });
@@ -74,7 +88,7 @@ impl Command for SpawnPauseMenuButtons {
                         align_content: AlignContent::Center,
                         margin: UiRect::all(Val::Auto),
                         justify_content: JustifyContent::Center,
-                        flex_direction: FlexDirection::ColumnReverse,
+                        flex_direction: FlexDirection::Column,
                         ..default()
                     },
                     ..default()
@@ -82,104 +96,40 @@ impl Command for SpawnPauseMenuButtons {
                 DependOnState::single(GameState::Pause),
             ))
             .with_children(|parent| {
-                parent
-                    .spawn((
-                        ButtonBundle {
-                            style: Style {
-                                width: Val::Px(150.0),
-                                height: Val::Px(65.0),
-                                margin: UiRect {
-                                    top: Val::Px(10.),
-                                    bottom: Val::Px(10.),
+                for button in ALL_BUTTONS.iter() {
+                    parent
+                        .spawn((
+                            ButtonBundle {
+                                style: Style {
+                                    width: Val::Px(150.0),
+                                    height: Val::Px(65.0),
+                                    margin: UiRect {
+                                        top: Val::Px(10.),
+                                        bottom: Val::Px(10.),
+                                        ..default()
+                                    },
+                                    justify_content: JustifyContent::Center,
+                                    align_items: AlignItems::Center,
+                                    border: UiRect::all(Val::Px(2.)),
                                     ..default()
                                 },
-                                justify_content: JustifyContent::Center,
-                                align_items: AlignItems::Center,
-                                border: UiRect::all(Val::Px(2.)),
+                                background_color: BackgroundColor(Color::BLACK),
+                                focus_policy: bevy::ui::FocusPolicy::Block,
                                 ..default()
                             },
-                            background_color: BackgroundColor(Color::BLACK),
-                            focus_policy: bevy::ui::FocusPolicy::Block,
-                            ..default()
-                        },
-                        PauseMenuButton::ReturnToMain,
-                    ))
-                    .with_children(|parent| {
-                        parent.spawn(TextBundle::from_section(
-                            "Return to Main Menu",
-                            TextStyle {
-                                font_size: 20.,
-                                color: Color::WHITE,
-                                ..default()
-                            },
-                        ));
-                    });
-
-                parent
-                    .spawn((
-                        ButtonBundle {
-                            style: Style {
-                                width: Val::Px(150.0),
-                                height: Val::Px(65.0),
-                                margin: UiRect {
-                                    top: Val::Px(10.),
-                                    bottom: Val::Px(10.),
+                            *button,
+                        ))
+                        .with_children(|parent| {
+                            parent.spawn(TextBundle::from_section(
+                                button.name(),
+                                TextStyle {
+                                    font_size: 20.,
+                                    color: Color::WHITE,
                                     ..default()
                                 },
-                                justify_content: JustifyContent::Center,
-                                align_items: AlignItems::Center,
-                                border: UiRect::all(Val::Px(2.)),
-                                ..default()
-                            },
-                            background_color: BackgroundColor(Color::BLACK),
-                            focus_policy: bevy::ui::FocusPolicy::Block,
-                            ..default()
-                        },
-                        PauseMenuButton::NextLevel,
-                    ))
-                    .with_children(|parent| {
-                        parent.spawn(TextBundle::from_section(
-                            "Next Level",
-                            TextStyle {
-                                font_size: 20.,
-                                color: Color::WHITE,
-                                ..default()
-                            },
-                        ));
-                    });
-
-                parent
-                    .spawn((
-                        ButtonBundle {
-                            style: Style {
-                                width: Val::Px(150.0),
-                                height: Val::Px(65.0),
-                                margin: UiRect {
-                                    top: Val::Px(10.),
-                                    bottom: Val::Px(10.),
-                                    ..default()
-                                },
-                                justify_content: JustifyContent::Center,
-                                align_items: AlignItems::Center,
-                                border: UiRect::all(Val::Px(2.)),
-                                ..default()
-                            },
-                            background_color: BackgroundColor(Color::BLACK),
-                            focus_policy: bevy::ui::FocusPolicy::Block,
-                            ..default()
-                        },
-                        PauseMenuButton::PrevLevel,
-                    ))
-                    .with_children(|parent| {
-                        parent.spawn(TextBundle::from_section(
-                            "Previous Level",
-                            TextStyle {
-                                font_size: 20.,
-                                color: Color::WHITE,
-                                ..default()
-                            },
-                        ));
-                    });
+                            ));
+                        });
+                }
             });
     }
 }
