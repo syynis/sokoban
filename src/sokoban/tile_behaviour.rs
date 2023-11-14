@@ -6,6 +6,7 @@ use super::{
     ball::Ball,
     level::CurrentLevel,
     momentum::{any_momentum_left, handle_momentum, Momentum},
+    player::Player,
     GameState, Pos,
 };
 
@@ -39,7 +40,7 @@ pub struct Void;
 
 fn handle_sand(
     sand_query: Query<&Pos, With<Sand>>,
-    mut momentum_query: Query<(&Pos, &mut Momentum)>,
+    mut momentum_query: Query<(&Pos, &mut Momentum), Without<Player>>,
 ) {
     for (pos, mut momentum) in momentum_query.iter_mut() {
         if sand_query.iter().any(|sand_pos| sand_pos == pos) {
