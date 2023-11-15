@@ -9,17 +9,17 @@ pub struct LevelSelectPlugin;
 
 impl Plugin for LevelSelectPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<CurrentLevel>();
-        app.register_type::<CurrentLevel>();
-        app.add_systems(
-            OnEnter(GameState::LevelSelect),
-            (spawn_level_select, apply_deferred).chain(),
-        )
-        .add_systems(
-            Update,
-            (handle_buttons, ui_navigation, render_selected_border)
-                .run_if(in_state(GameState::LevelSelect)),
-        );
+        app.init_resource::<CurrentLevel>()
+            .register_type::<CurrentLevel>()
+            .add_systems(
+                OnEnter(GameState::LevelSelect),
+                (spawn_level_select, apply_deferred).chain(),
+            )
+            .add_systems(
+                Update,
+                (handle_buttons, ui_navigation, render_selected_border)
+                    .run_if(in_state(GameState::LevelSelect)),
+            );
     }
 }
 
@@ -118,6 +118,10 @@ impl Command for SpawnLevelSelectButtons {
         for r in 0..rows {
             let mut buttons = Vec::new();
             for c in 0..cols {
+                let idx = c + r * cols;
+                if idx >= amount_levels {
+                    continue;
+                }
                 let id = world
                     .spawn((ButtonBundle {
                         style: Style {
@@ -135,7 +139,7 @@ impl Command for SpawnLevelSelectButtons {
                     },))
                     .with_children(|parent| {
                         parent.spawn(TextBundle::from_section(
-                            format!("{}", c + r * cols + 1),
+                            format!("{}", idx + 1),
                             TextStyle {
                                 font_size: 20.,
                                 color: Color::WHITE,
@@ -145,10 +149,7 @@ impl Command for SpawnLevelSelectButtons {
                     })
                     .id();
 
-                let idx = c + r * cols;
-                if idx < amount_levels {
-                    world.entity_mut(id).insert(LevelButton(idx));
-                }
+                world.entity_mut(id).insert(LevelButton(idx));
                 buttons.push(id);
             }
             let row_node = world

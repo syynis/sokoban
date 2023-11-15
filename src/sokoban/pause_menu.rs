@@ -9,11 +9,10 @@ pub struct PauseMenuPlugin;
 
 impl Plugin for PauseMenuPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<InteractionEvent>();
-        app.init_resource::<SelectedButton>();
-        app.register_type::<SelectedButton>();
-
-        app.add_systems(OnEnter(GameState::Pause), setup)
+        app.add_event::<InteractionEvent>()
+            .init_resource::<SelectedButton>()
+            .register_type::<SelectedButton>()
+            .add_systems(OnEnter(GameState::Pause), setup)
             .add_systems(
                 Update,
                 (

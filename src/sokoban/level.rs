@@ -23,24 +23,24 @@ pub struct LevelPlugin;
 impl Plugin for LevelPlugin {
     fn build(&self, app: &mut App) {
         app.register_asset_loader(LevelLoader)
-            .init_asset::<Levels>();
-        app.register_type::<Level>()
-            .register_type::<AssetCollection>();
-        app.add_systems(
-            OnTransition {
-                from: GameState::LevelTransition,
-                to: GameState::Play,
-            },
-            (spawn_level, apply_deferred, center_camera_on_level)
-                .chain()
-                .before(init_collision_map),
-        );
-        app.add_systems(
-            Update,
-            reload_on_change
-                .run_if(in_state(GameState::Play))
-                .run_if(on_event::<AssetEvent<Levels>>()),
-        );
+            .init_asset::<Levels>()
+            .register_type::<Level>()
+            .register_type::<AssetCollection>()
+            .add_systems(
+                OnTransition {
+                    from: GameState::LevelTransition,
+                    to: GameState::Play,
+                },
+                (spawn_level, apply_deferred, center_camera_on_level)
+                    .chain()
+                    .before(init_collision_map),
+            )
+            .add_systems(
+                Update,
+                reload_on_change
+                    .run_if(in_state(GameState::Play))
+                    .run_if(on_event::<AssetEvent<Levels>>()),
+            );
     }
 }
 

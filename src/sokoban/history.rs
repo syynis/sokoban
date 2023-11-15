@@ -9,8 +9,7 @@ pub struct HistoryPlugin<C: Component + Clone> {
 
 impl<C: Component + Clone> Plugin for HistoryPlugin<C> {
     fn build(&self, app: &mut App) {
-        app.add_event::<HistoryEvent>();
-        app.add_systems(
+        app.add_event::<HistoryEvent>().add_systems(
             Update,
             handle_history_commands::<C>.in_set(HandleHistoryEvents),
         );

@@ -24,10 +24,10 @@ fn main() {
         WorldInspectorPlugin::default(),
         TileCursorPlugin,
         SokobanPlugin,
-    ));
-    app.insert_resource(ClearColor(Color::ANTIQUE_WHITE));
-    app.add_systems(Startup, setup);
-    app.run();
+    ))
+    .insert_resource(ClearColor(Color::ANTIQUE_WHITE))
+    .add_systems(Startup, setup)
+    .run();
 }
 
 fn setup(mut cmds: Commands, asset_server: Res<AssetServer>) {
