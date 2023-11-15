@@ -5,7 +5,7 @@ use bevy::prelude::*;
 use super::{
     ball::Ball,
     level_select::CurrentLevel,
-    momentum::{any_momentum_left, apply_momentum, can_apply_momentum, handle_momentum, Momentum},
+    momentum::{any_momentum_left, apply_momentum, can_apply_momentum, Momentum},
     player::Player,
     GameState, Pos,
 };
@@ -19,10 +19,7 @@ impl Plugin for TileBehaviourPlugin {
             (
                 (
                     handle_rubber,
-                    // HACK Run handle_momentum again for proper void mechanics
-                    (handle_void, handle_momentum)
-                        .chain()
-                        .before(apply_momentum),
+                    handle_void.before(apply_momentum),
                     handle_sand.after(apply_momentum),
                 )
                     .run_if(can_apply_momentum()),

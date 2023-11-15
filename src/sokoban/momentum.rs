@@ -21,9 +21,7 @@ impl Plugin for MomentumPlugin {
                 Update,
                 (
                     (
-                        handle_momentum
-                            .before(handle_sokoban_events)
-                            .before(HandleHistoryEvents),
+                        handle_momentum.before(handle_sokoban_events),
                         (apply_momentum, reset_momentum_timer)
                             .chain()
                             .after(HandleHistoryEvents),
@@ -39,7 +37,7 @@ impl Plugin for MomentumPlugin {
 #[derive(Default, Component, Copy, Clone, Deref, DerefMut, Reflect)]
 pub struct Momentum(pub Option<Dir>);
 
-pub fn handle_momentum(
+fn handle_momentum(
     mut momentum_query: Query<(Entity, &mut Pos, &mut Momentum)>,
     collision: Res<CollisionMap>,
 ) {
