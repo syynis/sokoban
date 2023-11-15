@@ -1,11 +1,11 @@
-use std::{ops::AddAssign, time::Duration};
+use std::ops::AddAssign;
 
-use bevy::{prelude::*, time::common_conditions::on_timer};
+use bevy::prelude::*;
 
 use super::{
     ball::Ball,
     level::CurrentLevel,
-    momentum::{any_momentum_left, handle_momentum, Momentum},
+    momentum::{any_momentum_left, apply_momentum, can_apply_momentum, handle_momentum, Momentum},
     player::Player,
     GameState, Pos,
 };
@@ -17,14 +17,18 @@ impl Plugin for TileBehaviourPlugin {
         app.add_systems(
             Update,
             (
-                handle_sand,
-                handle_rubber,
-                handle_void,
+                (
+                    handle_rubber,
+                    // HACK Run handle_momentum again for proper void mechanics
+                    (handle_void, handle_momentum)
+                        .chain()
+                        .before(apply_momentum),
+                    handle_sand.after(apply_momentum),
+                )
+                    .run_if(can_apply_momentum()),
                 handle_goal.run_if(not(any_momentum_left())),
             )
-                .before(handle_momentum)
-                .run_if(in_state(GameState::Play))
-                .run_if(on_timer(Duration::from_millis(50))),
+                .run_if(in_state(GameState::Play)),
         );
     }
 }
@@ -40,7 +44,7 @@ pub struct Void;
 
 fn handle_sand(
     sand_query: Query<&Pos, With<Sand>>,
-    mut momentum_query: Query<(&Pos, &mut Momentum), Without<Player>>,
+    mut momentum_query: Query<(&Pos, &mut Momentum), (Without<Player>, Changed<Pos>)>,
 ) {
     for (pos, mut momentum) in momentum_query.iter_mut() {
         if sand_query.iter().any(|sand_pos| sand_pos == pos) {
@@ -68,7 +72,7 @@ fn handle_rubber(
 fn handle_void(
     mut cmds: Commands,
     void_query: Query<&Pos, With<Void>>,
-    sokoban_query: Query<(Entity, &Pos), Without<Void>>,
+    sokoban_query: Query<(Entity, &Pos), (Without<Void>, Changed<Pos>)>,
 ) {
     for (entity, pos) in sokoban_query.iter() {
         if void_query.iter().any(|void_pos| void_pos == pos) {

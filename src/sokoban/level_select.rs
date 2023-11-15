@@ -58,7 +58,7 @@ impl Command for SpawnLevelSelectButtons {
             .expect("Level assets should be loaded")
             .len();
         let cols = 5;
-        let rows = amount_levels / cols;
+        let rows = (amount_levels / cols) + 1;
 
         let mut children = Vec::new();
         for r in 0..rows {
