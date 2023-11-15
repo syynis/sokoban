@@ -4,7 +4,7 @@ use bevy::prelude::*;
 
 use super::{
     ball::Ball,
-    level::CurrentLevel,
+    level_select::CurrentLevel,
     momentum::{any_momentum_left, apply_momentum, can_apply_momentum, handle_momentum, Momentum},
     player::Player,
     GameState, Pos,

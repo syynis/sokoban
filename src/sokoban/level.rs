@@ -12,6 +12,7 @@ use super::{
     ball::SpawnBall,
     cleanup::DependOnState,
     collision::init_collision_map,
+    level_select::CurrentLevel,
     player::SpawnPlayer,
     tile_behaviour::{Goal, Rubber, Sand, Void},
     GameState, Pos, SokobanBlock,
@@ -24,8 +25,7 @@ impl Plugin for LevelPlugin {
         app.register_asset_loader(LevelLoader)
             .init_asset::<Levels>();
         app.register_type::<Level>()
-            .register_type::<AssetCollection>()
-            .register_type::<CurrentLevel>();
+            .register_type::<AssetCollection>();
         app.add_systems(
             OnTransition {
                 from: GameState::LevelTransition,
@@ -50,10 +50,6 @@ pub struct AssetCollection {
     pub levels: Handle<Levels>,
     pub tiles: Handle<Image>,
 }
-
-#[derive(Resource, Deref, DerefMut, Reflect, Default, Debug)]
-#[reflect(Resource)]
-pub struct CurrentLevel(pub usize);
 
 fn center_camera_on_level(
     mut camera_q: Query<(&mut Transform, &mut OrthographicProjection), With<Camera>>,
@@ -134,6 +130,10 @@ fn spawn_level(
             }
             TileKind::Ball => cmds.add(SpawnBall::new(Pos(position), tilemap_entity)),
             TileKind::Player => cmds.add(SpawnPlayer::new(Pos(position), tilemap_entity)),
+            TileKind::BallGoal => {
+                tile_cmds.insert((Name::new("Goal"), Goal));
+                cmds.add(SpawnBall::new(Pos(position), tilemap_entity))
+            }
             TileKind::Floor => {}
         };
         storage.set(&position, tile_entity);
@@ -181,6 +181,7 @@ pub enum TileKind {
     Sand,
     Player,
     Goal,
+    BallGoal,
 }
 
 impl From<u8> for TileKind {
@@ -195,6 +196,7 @@ impl From<u8> for TileKind {
             b'|' => Rubber,
             b'~' => Sand,
             b'g' => Goal,
+            b'B' => BallGoal,
             _ => {
                 bevy::log::warn!("Couldnt parse tile kind defaulting to wall tile");
                 Wall
@@ -214,6 +216,7 @@ impl From<TileKind> for TileTextureIndex {
             TileKind::Sand => 2,
             TileKind::Player => 0,
             TileKind::Goal => 4,
+            TileKind::BallGoal => 4,
         };
         Self(id)
     }

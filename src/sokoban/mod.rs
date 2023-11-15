@@ -94,15 +94,26 @@ pub enum SokobanActions {
     Undo,
     Escape,
     Reset,
+    UiNavUp,
+    UiNavRight,
+    UiNavDown,
+    UiNavLeft,
+    UiNavSelect,
 }
 
 fn sokoban_actions() -> InputMap<SokobanActions> {
     use SokobanActions::*;
     let mut input_map = InputMap::default();
 
-    input_map.insert(KeyCode::U, Undo);
-    input_map.insert(KeyCode::Escape, Escape);
+    input_map.insert(KeyCode::E, Undo);
+    input_map.insert_many_to_one(vec![KeyCode::Escape, KeyCode::Q], Escape);
     input_map.insert(KeyCode::R, Reset);
+
+    input_map.insert(KeyCode::W, UiNavUp);
+    input_map.insert(KeyCode::D, UiNavRight);
+    input_map.insert(KeyCode::S, UiNavDown);
+    input_map.insert(KeyCode::A, UiNavLeft);
+    input_map.insert(KeyCode::F, UiNavSelect);
 
     input_map
 }

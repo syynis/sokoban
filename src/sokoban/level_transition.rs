@@ -5,7 +5,7 @@ use bevy::prelude::*;
 use super::{
     cleanup::DependOnState,
     event_scheduler::{EventScheduler, EventSchedulerPlugin},
-    level::CurrentLevel,
+    level_select::CurrentLevel,
     GameState,
 };
 

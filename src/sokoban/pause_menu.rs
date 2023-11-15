@@ -1,15 +1,29 @@
 use std::ops::AddAssign;
 
 use bevy::{ecs::system::Command, prelude::*};
+use leafwing_input_manager::prelude::ActionState;
 
-use super::{cleanup::DependOnState, level::CurrentLevel, GameState};
+use super::{cleanup::DependOnState, level_select::CurrentLevel, GameState, SokobanActions};
 
 pub struct PauseMenuPlugin;
 
 impl Plugin for PauseMenuPlugin {
     fn build(&self, app: &mut App) {
+        app.add_event::<InteractionEvent>();
+        app.init_resource::<SelectedButton>();
+        app.register_type::<SelectedButton>();
+
         app.add_systems(OnEnter(GameState::Pause), setup)
-            .add_systems(Update, handle_buttons.run_if(in_state(GameState::Pause)));
+            .add_systems(
+                Update,
+                (
+                    handle_buttons.before(handle_interaction),
+                    ui_navigation.before(handle_interaction),
+                    handle_interaction,
+                    render_selected_border,
+                )
+                    .run_if(in_state(GameState::Pause)),
+            );
     }
 }
 
@@ -21,13 +35,25 @@ const ALL_BUTTONS: [PauseMenuButton; 5] = [
     PauseMenuButton::ReturnToMain,
 ];
 
-#[derive(Component, Copy, Clone)]
+#[derive(Component, Copy, Clone, PartialEq)]
 enum PauseMenuButton {
     Resume,
     NextLevel,
     PrevLevel,
     ReturnToLevelSelect,
     ReturnToMain,
+}
+
+impl From<PauseMenuButton> for GameState {
+    fn from(value: PauseMenuButton) -> Self {
+        match value {
+            PauseMenuButton::Resume => GameState::Play,
+            PauseMenuButton::NextLevel => GameState::LevelTransition,
+            PauseMenuButton::PrevLevel => GameState::LevelTransition,
+            PauseMenuButton::ReturnToLevelSelect => GameState::LevelSelect,
+            PauseMenuButton::ReturnToMain => GameState::MainMenu,
+        }
+    }
 }
 
 impl PauseMenuButton {
@@ -47,31 +73,73 @@ fn setup(mut cmds: Commands) {
     cmds.add(SpawnPauseMenuButtons);
 }
 
-fn handle_buttons(
-    buttons: Query<(&PauseMenuButton, &Interaction), Changed<Interaction>>,
+#[derive(Event, Deref, DerefMut)]
+struct InteractionEvent(pub PauseMenuButton);
+
+fn handle_interaction(
+    mut events: EventReader<InteractionEvent>,
     mut game_state: ResMut<NextState<GameState>>,
     mut current_level: ResMut<CurrentLevel>,
 ) {
-    buttons.iter().for_each(|button| match button {
-        (PauseMenuButton::Resume, Interaction::Pressed) => {
-            game_state.set(GameState::Play);
+    for ev in events.read() {
+        match **ev {
+            PauseMenuButton::NextLevel => {
+                current_level.add_assign(1);
+            }
+            PauseMenuButton::PrevLevel => {
+                current_level.0 = current_level.saturating_sub(1);
+            }
+            _ => {}
         }
-        (PauseMenuButton::NextLevel, Interaction::Pressed) => {
-            current_level.add_assign(1);
-            game_state.set(GameState::LevelTransition)
+        game_state.set(GameState::from(**ev));
+    }
+}
+
+fn handle_buttons(
+    buttons: Query<(&PauseMenuButton, &Interaction), Changed<Interaction>>,
+    mut event_writer: EventWriter<InteractionEvent>,
+) {
+    buttons.iter().for_each(|button| {
+        if let (button, Interaction::Pressed) = button {
+            event_writer.send(InteractionEvent(*button));
         }
-        (PauseMenuButton::PrevLevel, Interaction::Pressed) => {
-            current_level.0 = current_level.saturating_sub(1);
-            game_state.set(GameState::LevelTransition)
-        }
-        (PauseMenuButton::ReturnToLevelSelect, Interaction::Pressed) => {
-            game_state.set(GameState::LevelSelect);
-        }
-        (PauseMenuButton::ReturnToMain, Interaction::Pressed) => {
-            game_state.set(GameState::MainMenu);
-        }
-        _ => {}
     });
+}
+
+#[derive(Resource, Deref, DerefMut, Default, Reflect)]
+#[reflect(Resource)]
+struct SelectedButton(pub usize);
+
+fn ui_navigation(
+    navigation_actions: Query<&ActionState<SokobanActions>>,
+    mut selected_button: ResMut<SelectedButton>,
+    mut event_writer: EventWriter<InteractionEvent>,
+) {
+    let Ok(navigation_actions) = navigation_actions.get_single() else {
+        return;
+    };
+    if navigation_actions.just_pressed(SokobanActions::UiNavUp) {
+        selected_button.0 = (**selected_button + ALL_BUTTONS.len() - 1) % ALL_BUTTONS.len();
+    }
+    if navigation_actions.just_pressed(SokobanActions::UiNavDown) {
+        selected_button.0 = (**selected_button + 1) % ALL_BUTTONS.len();
+    }
+    if navigation_actions.just_pressed(SokobanActions::UiNavSelect) {
+        event_writer.send(InteractionEvent(ALL_BUTTONS[**selected_button]));
+    }
+}
+
+fn render_selected_border(
+    selected_button: Res<SelectedButton>,
+    mut buttons: Query<(&PauseMenuButton, &mut BorderColor)>,
+) {
+    for (button, mut border_color) in buttons.iter_mut() {
+        if *button == ALL_BUTTONS[**selected_button] {
+            *border_color = BorderColor(Color::RED);
+        } else {
+            *border_color = BorderColor(Color::NONE);
+        }
+    }
 }
 
 pub struct SpawnPauseMenuButtons;
