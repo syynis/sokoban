@@ -3,8 +3,6 @@ use bevy::{
     prelude::*,
     reflect::{TypePath, TypeUuid},
 };
-use bevy_ecs_tilemap::prelude::*;
-use bevy_pile::tilemap::layer::Layer;
 use serde::Deserialize;
 use thiserror::Error;
 
@@ -14,7 +12,7 @@ use super::{
     collision::init_collision_map,
     level_select::CurrentLevel,
     player::SpawnPlayer,
-    tile_behaviour::{Goal, Rubber, Sand, Void},
+    tile_behaviour::{Rubber, Sand, SpawnGoal, Void},
     GameState, Pos, SokobanBlock,
 };
 
@@ -48,33 +46,44 @@ impl Plugin for LevelPlugin {
 #[reflect(Resource)]
 pub struct AssetCollection {
     pub levels: Handle<Levels>,
-    pub tiles: Handle<Image>,
+    pub wall: Handle<Image>,
+    pub floor: Handle<Image>,
+    pub void: Handle<Image>,
+    pub sand: Handle<Image>,
+    pub rubber: Handle<Image>,
+    pub player: Handle<Image>,
+    pub ball: Handle<Image>,
+    pub goal: Handle<Image>,
 }
 
 fn center_camera_on_level(
     mut camera_q: Query<(&mut Transform, &mut OrthographicProjection), With<Camera>>,
-    tilemap_q: Query<&TilemapSize, (With<TileStorage>, Without<Camera>)>,
+    tilemap_q: Query<&LevelMarker, Without<Camera>>,
 ) {
     let Ok((mut camera_transform, mut projection)) = camera_q.get_single_mut() else {
         return;
     };
 
-    let Ok(size) = tilemap_q.get_single() else {
+    let Ok(level_marker) = tilemap_q.get_single() else {
         return;
     };
-    let center = Vec2::from(*size) * 8. / 2. - 4.;
+    let center = level_marker.size.as_vec2() * 8. / 2. - 4.;
     camera_transform.translation = center.extend(camera_transform.translation.z);
     projection.scale = 0.15;
+}
+
+#[derive(Component)]
+pub struct LevelMarker {
+    pub size: UVec2,
 }
 
 fn spawn_level(
     mut cmds: Commands,
     current_level: Res<CurrentLevel>,
     levels_assets: Res<Assets<Levels>>,
-    asset_collection: Res<AssetCollection>,
+    assets: Res<AssetCollection>,
 ) {
-    let levels_handle = &asset_collection.levels;
-    let tiles_handle = &asset_collection.tiles;
+    let levels_handle = &assets.levels;
 
     let levels = levels_assets
         .get(levels_handle)
@@ -83,75 +92,85 @@ fn spawn_level(
         .get(**current_level)
         .expect("Current level should only ever be set to a valid level");
 
-    let size = TilemapSize::from(level.size);
-    let mut storage = TileStorage::empty(size);
     let tilemap_entity = cmds.spawn_empty().id();
-    let tile_size = TilemapTileSize::from(Vec2::splat(8.));
-    let grid_size = tile_size.into();
-    let map_type = TilemapType::Square;
 
     for (idx, tile) in level.tiles.iter().enumerate() {
-        let position = TilePos {
+        let position = UVec2 {
             x: idx as u32 % level.size.x,
             y: level.size.y - (idx as u32 / level.size.x) - 1,
         };
 
+        let texture = match tile {
+            TileKind::Wall => &assets.wall,
+            TileKind::Floor
+            | TileKind::Player
+            | TileKind::Goal
+            | TileKind::Ball
+            | TileKind::BallGoal => &assets.floor,
+            TileKind::Void => &assets.void,
+            TileKind::Rubber => &assets.rubber,
+            TileKind::Sand => &assets.sand,
+        }
+        .clone();
+
         let tile_entity = cmds
             .spawn((
                 Name::new("Tile"),
-                TileBundle {
-                    position,
-                    texture_index: TileTextureIndex::from(*tile),
-                    tilemap_id: TilemapId(tilemap_entity),
+                SpriteBundle {
+                    texture,
                     ..default()
                 },
             ))
             .id();
 
+        let pos = Pos(position);
         let mut tile_cmds = cmds.entity(tile_entity);
-        if !matches!(tile, TileKind::Floor) {
-            tile_cmds.insert(Pos(position));
+        if matches!(
+            tile,
+            TileKind::Floor
+                | TileKind::Player
+                | TileKind::Goal
+                | TileKind::Ball
+                | TileKind::BallGoal
+        ) {
+            tile_cmds.insert(SpatialBundle {
+                transform: Transform::from_translation(
+                    pos.to_world_pos().extend(-(1. + level.size.y as f32)),
+                ),
+                ..default()
+            });
+        } else {
+            tile_cmds.insert(pos);
         }
         match tile {
             TileKind::Sand => {
-                tile_cmds.insert((Name::new("Sand"), Sand));
+                tile_cmds.insert((pos, Name::new("Sand"), Sand));
             }
             TileKind::Rubber => {
-                tile_cmds.insert((Name::new("Rubber"), SokobanBlock::Static, Rubber));
+                tile_cmds.insert((pos, Name::new("Rubber"), SokobanBlock::Static, Rubber));
             }
             TileKind::Wall => {
-                tile_cmds.insert(SokobanBlock::Static);
+                tile_cmds.insert((pos, Name::new("Wall"), SokobanBlock::Static));
             }
             TileKind::Void => {
-                tile_cmds.insert((Name::new("Void"), Void));
+                tile_cmds.insert((pos, Name::new("Void"), Void));
             }
-            TileKind::Goal => {
-                tile_cmds.insert((Name::new("Goal"), Goal));
-            }
-            TileKind::Ball => cmds.add(SpawnBall::new(Pos(position), tilemap_entity)),
-            TileKind::Player => cmds.add(SpawnPlayer::new(Pos(position), tilemap_entity)),
+            TileKind::Goal => cmds.add(SpawnGoal::new(pos, tilemap_entity)),
+            TileKind::Ball => cmds.add(SpawnBall::new(pos, tilemap_entity)),
+            TileKind::Player => cmds.add(SpawnPlayer::new(pos, tilemap_entity)),
             TileKind::BallGoal => {
-                tile_cmds.insert((Name::new("Goal"), Goal));
-                cmds.add(SpawnBall::new(Pos(position), tilemap_entity))
+                cmds.add(SpawnGoal::new(pos, tilemap_entity));
+                cmds.add(SpawnBall::new(pos, tilemap_entity));
             }
             TileKind::Floor => {}
         };
-        storage.set(&position, tile_entity);
         cmds.entity(tilemap_entity).add_child(tile_entity);
     }
     cmds.entity(tilemap_entity).insert((
-        TilemapBundle {
-            grid_size,
-            map_type,
-            size,
-            storage,
-            texture: TilemapTexture::Single(tiles_handle.clone()),
-            tile_size,
-            ..default()
-        },
+        LevelMarker { size: level.size },
+        SpatialBundle::default(),
         Name::new(format!("Level {}", **current_level)),
         DependOnState(vec![GameState::Play, GameState::Pause]),
-        Layer::World,
     ));
 }
 
@@ -202,23 +221,6 @@ impl From<u8> for TileKind {
                 Wall
             }
         }
-    }
-}
-
-impl From<TileKind> for TileTextureIndex {
-    fn from(value: TileKind) -> Self {
-        let id = match value {
-            TileKind::Wall => 1,
-            TileKind::Floor => 0,
-            TileKind::Void => 3,
-            TileKind::Ball => 0,
-            TileKind::Rubber => 5,
-            TileKind::Sand => 2,
-            TileKind::Player => 0,
-            TileKind::Goal => 4,
-            TileKind::BallGoal => 4,
-        };
-        Self(id)
     }
 }
 

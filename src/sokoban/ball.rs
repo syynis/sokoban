@@ -1,31 +1,31 @@
 use bevy::{ecs::system::Command, prelude::*};
 
-use super::{history::History, momentum::Momentum, Pos, SokobanBlock};
+use super::{
+    history::History, level::AssetCollection, momentum::Momentum, PixelOffset, Pos, SokobanBlock,
+    ZOffset,
+};
 
 #[derive(Component)]
 pub struct Ball;
 
 pub struct SpawnBall {
     pub pos: Pos,
-    pub tilemap_entity: Entity,
+    pub parent: Entity,
 }
 
 impl SpawnBall {
-    pub fn new(pos: Pos, tilemap_entity: Entity) -> Self {
-        Self {
-            pos,
-            tilemap_entity,
-        }
+    pub fn new(pos: Pos, parent: Entity) -> Self {
+        Self { pos, parent }
     }
 }
 
 impl Command for SpawnBall {
     fn apply(self, world: &mut World) {
-        let asset_server = world.resource::<AssetServer>();
-        let ball_handle: Handle<Image> = asset_server.load("ball.png");
+        let assets = world.resource::<AssetCollection>();
+        let ball_handle: Handle<Image> = assets.ball.clone();
 
         world
-            .entity_mut(self.tilemap_entity)
+            .entity_mut(self.parent)
             .with_children(|child_builder| {
                 child_builder.spawn((
                     Name::new("Ball"),
@@ -35,9 +35,10 @@ impl Command for SpawnBall {
                     SokobanBlock::Dynamic,
                     SpriteBundle {
                         texture: ball_handle,
-                        transform: Transform::from_translation(Vec3::Z),
                         ..default()
                     },
+                    PixelOffset(UVec2::Y),
+                    ZOffset(0.5),
                     Momentum::default(),
                 ));
             });

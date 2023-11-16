@@ -1,7 +1,8 @@
+#![allow(clippy::too_many_arguments, clippy::type_complexity)]
+
 use bevy::{log::LogPlugin, prelude::*};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_pancam::{PanCam, PanCamPlugin};
-use bevy_pile::{cursor::WorldCursorPlugin, tilemap::TileCursorPlugin};
 use sokoban::{
     level::{AssetCollection, Levels},
     SokobanPlugin,
@@ -28,9 +29,7 @@ fn main() {
                 filter: "info,wgpu_core=warn,wgpu_hal=warn,sokoban=debug".into(),
             }),
         PanCamPlugin,
-        WorldCursorPlugin::<PanCam>::default(),
         WorldInspectorPlugin::default(),
-        TileCursorPlugin,
         SokobanPlugin,
     ))
     .insert_resource(ClearColor(Color::ANTIQUE_WHITE))
@@ -49,6 +48,23 @@ fn setup(mut cmds: Commands, asset_server: Res<AssetServer>) {
     ));
 
     let levels: Handle<Levels> = asset_server.load("test.levels");
-    let tiles: Handle<Image> = asset_server.load("tiles.png");
-    cmds.insert_resource(AssetCollection { levels, tiles });
+    let wall: Handle<Image> = asset_server.load("wall.png");
+    let floor: Handle<Image> = asset_server.load("floor.png");
+    let player: Handle<Image> = asset_server.load("player.png");
+    let ball: Handle<Image> = asset_server.load("ball.png");
+    let goal: Handle<Image> = asset_server.load("goal.png");
+    let sand: Handle<Image> = asset_server.load("sand.png");
+    let void: Handle<Image> = asset_server.load("void.png");
+    let rubber: Handle<Image> = asset_server.load("rubber.png");
+    cmds.insert_resource(AssetCollection {
+        levels,
+        wall,
+        floor,
+        sand,
+        void,
+        rubber,
+        player,
+        ball,
+        goal,
+    });
 }

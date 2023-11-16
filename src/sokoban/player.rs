@@ -4,8 +4,9 @@ use leafwing_input_manager::prelude::*;
 use super::{
     handle_sokoban_events,
     history::{History, HistoryEvent},
+    level::AssetCollection,
     momentum::{any_momentum_left, Momentum},
-    Dir, GameState, Pos, Pusher, SokobanBlock, SokobanEvents,
+    Dir, GameState, Pos, Pusher, SokobanBlock, SokobanEvents, ZOffset,
 };
 
 pub struct PlayerPlugin;
@@ -48,25 +49,22 @@ impl From<PlayerActions> for Dir {
 
 pub struct SpawnPlayer {
     pub pos: Pos,
-    pub tilemap_entity: Entity,
+    pub parent: Entity,
 }
 
 impl SpawnPlayer {
-    pub fn new(pos: Pos, tilemap_entity: Entity) -> Self {
-        Self {
-            pos,
-            tilemap_entity,
-        }
+    pub fn new(pos: Pos, parent: Entity) -> Self {
+        Self { pos, parent }
     }
 }
 
 impl Command for SpawnPlayer {
     fn apply(self, world: &mut World) {
-        let asset_server = world.resource::<AssetServer>();
-        let player_handle: Handle<Image> = asset_server.load("player.png");
+        let assets = world.resource::<AssetCollection>();
+        let player_handle: Handle<Image> = assets.player.clone();
 
         world
-            .entity_mut(self.tilemap_entity)
+            .entity_mut(self.parent)
             .with_children(|child_builder| {
                 child_builder.spawn((
                     Name::new("Player"),
@@ -80,6 +78,7 @@ impl Command for SpawnPlayer {
                         transform: Transform::from_translation(Vec3::Z),
                         ..default()
                     },
+                    ZOffset(0.5),
                     Momentum::default(),
                 ));
             });

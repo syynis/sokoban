@@ -1,6 +1,4 @@
 use bevy::{ecs::system::SystemParam, prelude::*};
-use bevy_ecs_tilemap::{prelude::TilemapGridSize, tiles::TilePos};
-use bevy_pile::tilemap::tile_to_world_pos;
 use leafwing_input_manager::prelude::*;
 
 use crate::sokoban::momentum::Momentum;
@@ -168,11 +166,11 @@ fn escape(
 }
 
 #[derive(Component, Default, Clone, Copy, Debug, PartialEq, Eq, Deref, DerefMut, Reflect)]
-pub struct Pos(pub TilePos);
+pub struct Pos(pub UVec2);
 
 impl Pos {
     pub fn new(x: u32, y: u32) -> Self {
-        Self(TilePos { x, y })
+        Self(UVec2::new(x, y))
     }
 
     pub fn add_dir(&mut self, dir: Dir) {
@@ -180,25 +178,39 @@ impl Pos {
         self.x = self.x.saturating_add_signed(dir.x);
         self.y = self.y.saturating_add_signed(dir.y);
     }
+
+    pub fn to_world_pos(&self) -> Vec2 {
+        let scaled = self.0 * 8;
+        scaled.as_vec2()
+    }
 }
 
 impl From<Pos> for IVec2 {
     fn from(value: Pos) -> Self {
-        UVec2::from(*value).as_ivec2()
+        value.as_ivec2()
     }
 }
 
 impl From<&Pos> for IVec2 {
     fn from(value: &Pos) -> Self {
-        UVec2::from(**value).as_ivec2()
+        value.as_ivec2()
     }
 }
 
-pub fn copy_pos_to_transform(mut query: Query<(&Pos, &mut Transform), Changed<Pos>>) {
-    for (pos, mut transform) in query.iter_mut() {
-        let new = tile_to_world_pos(pos, &TilemapGridSize { x: 8., y: 8. })
-            .extend(transform.translation.z);
+#[derive(Component, Default, Deref, DerefMut)]
+pub struct PixelOffset(pub UVec2);
 
+#[derive(Component, Deref, DerefMut)]
+pub struct ZOffset(pub f32);
+
+pub fn copy_pos_to_transform(
+    mut query: Query<(&Pos, &mut Transform, Option<&PixelOffset>, Option<&ZOffset>), Changed<Pos>>,
+) {
+    for (pos, mut transform, offset, z) in query.iter_mut() {
+        let offset = offset.map_or(UVec2::ZERO, |offset| **offset).as_vec2();
+        let z = z.map_or(0., |z| **z);
+        let new = pos.to_world_pos() + offset;
+        let new = new.extend(-(pos.y as f32 - z));
         transform.translation = new;
     }
 }
