@@ -14,6 +14,14 @@ fn main() {
 
     app.add_plugins((
         DefaultPlugins
+            .set(WindowPlugin {
+                primary_window: Some(Window {
+                    title: "Sokoban".to_string(),
+                    fit_canvas_to_parent: true,
+                    ..default()
+                }),
+                ..default()
+            })
             .set(ImagePlugin::default_nearest())
             .set(LogPlugin {
                 level: bevy::log::Level::DEBUG,
