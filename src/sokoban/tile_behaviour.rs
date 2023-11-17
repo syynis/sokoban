@@ -1,14 +1,13 @@
 use std::ops::AddAssign;
 
-use bevy::{ecs::system::Command, prelude::*};
+use bevy::prelude::*;
 
 use super::{
     ball::Ball,
-    level::AssetCollection,
     level_select::CurrentLevel,
     momentum::{any_momentum_left, apply_momentum, can_apply_momentum, Momentum},
     player::Player,
-    GameState, PixelOffset, Pos,
+    GameState, Pos,
 };
 
 pub struct TileBehaviourPlugin;
@@ -91,38 +90,5 @@ fn handle_goal(
     if satisfied {
         current_level.add_assign(1);
         next_state.set(GameState::LevelTransition);
-    }
-}
-
-pub struct SpawnGoal {
-    pub pos: Pos,
-    pub parent: Entity,
-}
-
-impl SpawnGoal {
-    pub fn new(pos: Pos, parent: Entity) -> Self {
-        Self { pos, parent }
-    }
-}
-
-impl Command for SpawnGoal {
-    fn apply(self, world: &mut World) {
-        let assets = world.resource::<AssetCollection>();
-        let goal_handle: Handle<Image> = assets.goal.clone();
-
-        world
-            .entity_mut(self.parent)
-            .with_children(|child_builder| {
-                child_builder.spawn((
-                    Name::new("Goal"),
-                    Goal,
-                    self.pos,
-                    SpriteBundle {
-                        texture: goal_handle,
-                        ..default()
-                    },
-                    PixelOffset(UVec2::Y * 2),
-                ));
-            });
     }
 }

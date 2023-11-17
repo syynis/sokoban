@@ -1,7 +1,8 @@
 use bevy::{log, prelude::*};
+use bevy_ecs_tilemap::{prelude::TilemapSize, tiles::TileStorage};
 use bevy_pile::grid::Grid;
 
-use super::{level::LevelMarker, Dir, GameState, Pos, SokobanBlock};
+use super::{Dir, GameState, Pos, SokobanBlock};
 
 pub struct CollisionPlugin;
 
@@ -38,14 +39,13 @@ impl Default for CollisionMap {
 
 pub fn init_collision_map(
     mut cmds: Commands,
-    tilemap: Query<&LevelMarker, Added<LevelMarker>>,
+    tilemap: Query<&TilemapSize, Added<TileStorage>>,
     sokoban_entities: Query<(Entity, &Pos, &SokobanBlock)>,
 ) {
-    let Some(level_marker) = tilemap.get_single().ok() else {
+    let Some(size) = tilemap.get_single().ok() else {
         log::warn!("Not exactly one tilemap");
         return;
     };
-    let size = level_marker.size;
     log::debug!("Initialized collision map");
     let mut map = Grid::new(IVec2::new(size.x as i32, size.y as i32), None);
     for (entity, pos, block) in sokoban_entities.iter() {

@@ -3611,6 +3611,7 @@ dependencies = [
  "anyhow",
  "bevy",
  "bevy-inspector-egui",
+ "bevy_ecs_tilemap",
  "bevy_pancam",
  "bevy_pile",
  "bevy_tweening",
