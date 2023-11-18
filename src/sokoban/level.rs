@@ -14,7 +14,7 @@ use super::{
     collision::init_collision_map,
     level_select::CurrentLevel,
     player::SpawnPlayer,
-    tile_behaviour::{Goal, Rubber, Sand, Void},
+    tile_behaviour::{Goal, Rubber, Sand, SpawnGoal, Void},
     GameState, Pos, SokobanBlock,
 };
 
@@ -108,9 +108,10 @@ fn spawn_level(
             ))
             .id();
 
+        let pos = Pos(position);
         let mut tile_cmds = cmds.entity(tile_entity);
         if !matches!(tile, TileKind::Floor) {
-            tile_cmds.insert(Pos(position));
+            tile_cmds.insert(pos);
         }
         match tile {
             TileKind::Sand => {
@@ -126,13 +127,13 @@ fn spawn_level(
                 tile_cmds.insert((Name::new("Void"), Void));
             }
             TileKind::Goal => {
-                tile_cmds.insert((Name::new("Goal"), Goal));
+                cmds.add(SpawnGoal::new(pos, tilemap_entity));
             }
-            TileKind::Ball => cmds.add(SpawnBall::new(Pos(position), tilemap_entity)),
-            TileKind::Player => cmds.add(SpawnPlayer::new(Pos(position), tilemap_entity)),
+            TileKind::Ball => cmds.add(SpawnBall::new(pos, tilemap_entity)),
+            TileKind::Player => cmds.add(SpawnPlayer::new(pos, tilemap_entity)),
             TileKind::BallGoal => {
-                tile_cmds.insert((Name::new("Goal"), Goal));
-                cmds.add(SpawnBall::new(Pos(position), tilemap_entity))
+                cmds.add(SpawnGoal::new(pos, tilemap_entity));
+                cmds.add(SpawnBall::new(pos, tilemap_entity))
             }
             TileKind::Floor => {}
         };
@@ -212,11 +213,11 @@ impl From<TileKind> for TileTextureIndex {
             TileKind::Floor => 0,
             TileKind::Void => 3,
             TileKind::Ball => 0,
-            TileKind::Rubber => 5,
+            TileKind::Rubber => 4,
             TileKind::Sand => 2,
             TileKind::Player => 0,
-            TileKind::Goal => 4,
-            TileKind::BallGoal => 4,
+            TileKind::Goal => 0,
+            TileKind::BallGoal => 0,
         };
         Self(id)
     }

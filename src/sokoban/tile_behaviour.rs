@@ -1,6 +1,6 @@
 use std::ops::AddAssign;
 
-use bevy::prelude::*;
+use bevy::{ecs::system::Command, prelude::*};
 
 use super::{
     ball::Ball,
@@ -90,5 +90,41 @@ fn handle_goal(
     if satisfied {
         current_level.add_assign(1);
         next_state.set(GameState::LevelTransition);
+    }
+}
+
+pub struct SpawnGoal {
+    pos: Pos,
+    tilemap_entity: Entity,
+}
+
+impl SpawnGoal {
+    pub fn new(pos: Pos, tilemap_entity: Entity) -> Self {
+        Self {
+            pos,
+            tilemap_entity,
+        }
+    }
+}
+
+impl Command for SpawnGoal {
+    fn apply(self, world: &mut World) {
+        let asset_server = world.resource::<AssetServer>();
+        let goal_handle: Handle<Image> = asset_server.load("goal.png");
+
+        world
+            .entity_mut(self.tilemap_entity)
+            .with_children(|child_builder| {
+                child_builder.spawn((
+                    Name::new("Goal"),
+                    Goal,
+                    self.pos,
+                    SpriteBundle {
+                        texture: goal_handle,
+                        transform: Transform::from_translation(Vec3::Z),
+                        ..default()
+                    },
+                ));
+            });
     }
 }
