@@ -8,7 +8,10 @@ use crate::sokoban::momentum::Momentum;
 use self::{
     cleanup::cleanup_on_state_change,
     collision::{CollisionMap, CollisionPlugin, CollisionResult},
-    history::{HandleHistoryEvents, History, HistoryEvent, HistoryPlugin},
+    history::{
+        HandleHistoryEvents, History, HistoryComponentPlugin, HistoryEntry, HistoryEvent,
+        HistoryPlugin,
+    },
     level::LevelPlugin,
     level_select::LevelSelectPlugin,
     level_transition::LevelTransitionPlugin,
@@ -39,7 +42,8 @@ impl Plugin for SokobanPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((
             PlayerPlugin,
-            HistoryPlugin::<Pos>::default(),
+            HistoryPlugin,
+            HistoryComponentPlugin::<Pos>::default(),
             InputManagerPlugin::<SokobanActions>::default(),
             MomentumPlugin,
             CollisionPlugin,
