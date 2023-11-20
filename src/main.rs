@@ -1,4 +1,8 @@
-use bevy::{log::LogPlugin, prelude::*};
+use bevy::{
+    ecs::schedule::{LogLevel, ScheduleBuildSettings},
+    log::LogPlugin,
+    prelude::*,
+};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_pancam::{PanCam, PanCamPlugin};
 use bevy_pile::{cursor::WorldCursorPlugin, tilemap::TileCursorPlugin};
@@ -11,7 +15,12 @@ pub mod sokoban;
 
 fn main() {
     let mut app = App::new();
-
+    app.edit_schedule(Main, |schedule| {
+        schedule.set_build_settings(ScheduleBuildSettings {
+            ambiguity_detection: LogLevel::Warn,
+            ..default()
+        });
+    });
     app.add_plugins((
         DefaultPlugins
             .set(WindowPlugin {

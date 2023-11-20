@@ -8,10 +8,7 @@ use crate::sokoban::momentum::Momentum;
 use self::{
     cleanup::cleanup_on_state_change,
     collision::{CollisionMap, CollisionPlugin, CollisionResult},
-    history::{
-        HandleHistoryEvents, History, HistoryComponentPlugin, HistoryEntry, HistoryEvent,
-        HistoryPlugin,
-    },
+    history::{HandleHistoryEvents, History, HistoryComponentPlugin, HistoryEvent, HistoryPlugin},
     level::LevelPlugin,
     level_select::LevelSelectPlugin,
     level_transition::LevelTransitionPlugin,
