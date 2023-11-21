@@ -4,6 +4,7 @@ use bevy::{ecs::system::Command, prelude::*};
 
 use super::{
     ball::Ball,
+    level::AssetCollection,
     level_select::CurrentLevel,
     momentum::{any_momentum_left, apply_momentum, can_apply_momentum, Momentum},
     player::Player,
@@ -69,7 +70,7 @@ fn handle_rubber(
 fn handle_void(
     mut cmds: Commands,
     void_query: Query<&Pos, With<Void>>,
-    sokoban_query: Query<(Entity, &Pos), (Without<Void>, Changed<Pos>)>,
+    sokoban_query: Query<(Entity, &Pos), Without<Void>>,
 ) {
     for (entity, pos) in sokoban_query.iter() {
         if void_query.iter().any(|void_pos| void_pos == pos) {
@@ -109,8 +110,7 @@ impl SpawnGoal {
 
 impl Command for SpawnGoal {
     fn apply(self, world: &mut World) {
-        let asset_server = world.resource::<AssetServer>();
-        let goal_handle: Handle<Image> = asset_server.load("goal.png");
+        let texture = world.resource::<AssetCollection>().goal.clone();
 
         world
             .entity_mut(self.tilemap_entity)
@@ -120,7 +120,7 @@ impl Command for SpawnGoal {
                     Goal,
                     self.pos,
                     SpriteBundle {
-                        texture: goal_handle,
+                        texture,
                         transform: Transform::from_translation(Vec3::Z),
                         ..default()
                     },

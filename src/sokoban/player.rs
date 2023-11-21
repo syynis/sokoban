@@ -4,6 +4,7 @@ use leafwing_input_manager::prelude::*;
 use super::{
     handle_sokoban_events,
     history::{History, HistoryEvent},
+    level::AssetCollection,
     momentum::{any_momentum_left, Momentum},
     Dir, GameState, Pos, Pusher, SokobanBlock, SokobanEvents,
 };
@@ -24,7 +25,7 @@ impl Plugin for PlayerPlugin {
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Clone)]
 pub struct Player;
 
 #[derive(Actionlike, Clone, Copy, Hash, Debug, PartialEq, Eq, Reflect)]
@@ -62,8 +63,7 @@ impl SpawnPlayer {
 
 impl Command for SpawnPlayer {
     fn apply(self, world: &mut World) {
-        let asset_server = world.resource::<AssetServer>();
-        let player_handle: Handle<Image> = asset_server.load("player.png");
+        let texture = world.resource::<AssetCollection>().player.clone();
 
         world
             .entity_mut(self.tilemap_entity)
@@ -76,7 +76,7 @@ impl Command for SpawnPlayer {
                     SokobanBlock::Dynamic,
                     Pusher,
                     SpriteBundle {
-                        texture: player_handle,
+                        texture,
                         transform: Transform::from_translation(Vec3::Z),
                         ..default()
                     },

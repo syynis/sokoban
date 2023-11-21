@@ -14,7 +14,7 @@ use super::{
     collision::init_collision_map,
     level_select::CurrentLevel,
     player::SpawnPlayer,
-    tile_behaviour::{Goal, Rubber, Sand, SpawnGoal, Void},
+    tile_behaviour::{Rubber, Sand, SpawnGoal, Void},
     GameState, Pos, SokobanBlock,
 };
 
@@ -49,6 +49,9 @@ impl Plugin for LevelPlugin {
 pub struct AssetCollection {
     pub levels: Handle<Levels>,
     pub tiles: Handle<Image>,
+    pub player: Handle<Image>,
+    pub ball: Handle<Image>,
+    pub goal: Handle<Image>,
 }
 
 fn center_camera_on_level(

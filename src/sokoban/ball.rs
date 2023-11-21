@@ -1,6 +1,6 @@
 use bevy::{ecs::system::Command, prelude::*};
 
-use super::{history::History, momentum::Momentum, Pos, SokobanBlock};
+use super::{history::History, level::AssetCollection, momentum::Momentum, Pos, SokobanBlock};
 
 #[derive(Component)]
 pub struct Ball;
@@ -21,8 +21,7 @@ impl SpawnBall {
 
 impl Command for SpawnBall {
     fn apply(self, world: &mut World) {
-        let asset_server = world.resource::<AssetServer>();
-        let ball_handle: Handle<Image> = asset_server.load("ball.png");
+        let texture = world.resource::<AssetCollection>().ball.clone();
 
         world
             .entity_mut(self.tilemap_entity)
@@ -34,7 +33,7 @@ impl Command for SpawnBall {
                     History::<Pos>::default(),
                     SokobanBlock::Dynamic,
                     SpriteBundle {
-                        texture: ball_handle,
+                        texture,
                         transform: Transform::from_translation(Vec3::Z),
                         ..default()
                     },

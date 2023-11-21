@@ -59,5 +59,14 @@ fn setup(mut cmds: Commands, asset_server: Res<AssetServer>) {
 
     let levels: Handle<Levels> = asset_server.load("test.levels");
     let tiles: Handle<Image> = asset_server.load("tiles.png");
-    cmds.insert_resource(AssetCollection { levels, tiles });
+    let player: Handle<Image> = asset_server.load("player.png");
+    let ball: Handle<Image> = asset_server.load("ball.png");
+    let goal: Handle<Image> = asset_server.load("goal.png");
+    cmds.insert_resource(AssetCollection {
+        levels,
+        tiles,
+        player,
+        ball,
+        goal,
+    });
 }
