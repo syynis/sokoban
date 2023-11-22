@@ -19,7 +19,7 @@ thiserror = "1.0"
 
 [features]
 hot = [ "bevy/file_watcher" ]
-dynamic = [ "bevy/dynamic_linking" ]
+dyn = [ "bevy/dynamic_linking" ]
 
 [profile.wasm-release]
 inherits = "release"

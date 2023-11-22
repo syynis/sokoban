@@ -34,7 +34,7 @@ impl Command for SpawnBall {
                     SokobanBlock::Dynamic,
                     SpriteBundle {
                         texture,
-                        transform: Transform::from_translation(Vec3::Z),
+                        transform: Transform::from_translation(2. * Vec3::Z),
                         ..default()
                     },
                     Momentum::default(),

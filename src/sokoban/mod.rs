@@ -8,6 +8,7 @@ use crate::sokoban::momentum::Momentum;
 use self::{
     cleanup::cleanup_on_state_change,
     collision::{CollisionMap, CollisionPlugin, CollisionResult},
+    entity::CommandHistoryPlugin,
     history::{HandleHistoryEvents, History, HistoryComponentPlugin, HistoryEvent, HistoryPlugin},
     level::LevelPlugin,
     level_select::LevelSelectPlugin,
@@ -22,6 +23,7 @@ use self::{
 pub mod ball;
 pub mod cleanup;
 pub mod collision;
+pub mod entity;
 pub mod event_scheduler;
 pub mod history;
 pub mod level;
@@ -50,6 +52,7 @@ impl Plugin for SokobanPlugin {
             PauseMenuPlugin,
             LevelTransitionPlugin,
             TileBehaviourPlugin,
+            CommandHistoryPlugin,
         ))
         .add_state::<GameState>()
         .register_type::<Pos>()
@@ -292,4 +295,19 @@ pub struct PushEvent {
     pub pusher: Entity,
     pub direction: Dir,
     pub pushed: Vec<Entity>,
+}
+
+#[derive(Bundle, Clone)]
+pub struct DynamicBundle {
+    momentum: Momentum,
+    block: SokobanBlock,
+}
+
+impl Default for DynamicBundle {
+    fn default() -> Self {
+        Self {
+            momentum: Momentum::default(),
+            block: SokobanBlock::Dynamic,
+        }
+    }
 }

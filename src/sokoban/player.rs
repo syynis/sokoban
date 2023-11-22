@@ -77,7 +77,7 @@ impl Command for SpawnPlayer {
                     Pusher,
                     SpriteBundle {
                         texture,
-                        transform: Transform::from_translation(Vec3::Z),
+                        transform: Transform::from_translation(2. * Vec3::Z),
                         ..default()
                     },
                     Momentum::default(),
@@ -122,10 +122,10 @@ pub fn handle_player_actions(
         return;
     };
 
-    player_actions
-        .get_just_pressed()
-        .iter()
-        .for_each(|action| sokoban.move_entity(player, Dir::from(*action)));
+    player_actions.get_just_pressed().iter().for_each(|action| {
+        sokoban.move_entity(player, Dir::from(*action));
+        return;
+    });
     if !player_actions.get_just_pressed().is_empty() {
         history_events.send(HistoryEvent::Record)
     }
