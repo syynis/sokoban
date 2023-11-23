@@ -4,7 +4,6 @@ use bevy::{
     reflect::{TypePath, TypeUuid},
 };
 use bevy_ecs_tilemap::prelude::*;
-use bevy_pile::tilemap::layer::Layer;
 use serde::Deserialize;
 use thiserror::Error;
 
@@ -70,6 +69,9 @@ fn center_camera_on_level(
     projection.scale = 0.15;
 }
 
+#[derive(Component)]
+pub struct LevelRoot;
+
 fn spawn_level(
     mut cmds: Commands,
     current_level: Res<CurrentLevel>,
@@ -88,6 +90,13 @@ fn spawn_level(
 
     let size = TilemapSize::from(level.size);
     let mut storage = TileStorage::empty(size);
+    let level_root = cmds
+        .spawn((
+            SpatialBundle::default(),
+            DependOnState(vec![GameState::Play, GameState::Pause]),
+            Name::new("Level Root"),
+        ))
+        .id();
     let tilemap_entity = cmds.spawn_empty().id();
     let tile_size = TilemapTileSize::from(Vec2::splat(8.));
     let grid_size = tile_size.into();
@@ -130,13 +139,13 @@ fn spawn_level(
                 tile_cmds.insert((Name::new("Void"), Void));
             }
             TileKind::Goal => {
-                cmds.add(SpawnGoal::new(pos, tilemap_entity));
+                cmds.add(SpawnGoal::new(pos, level_root));
             }
-            TileKind::Ball => cmds.add(SpawnBall::new(pos, tilemap_entity)),
-            TileKind::Player => cmds.add(SpawnPlayer::new(pos, tilemap_entity)),
+            TileKind::Ball => cmds.add(SpawnBall::new(pos, level_root)),
+            TileKind::Player => cmds.add(SpawnPlayer::new(pos, level_root)),
             TileKind::BallGoal => {
-                cmds.add(SpawnGoal::new(pos, tilemap_entity));
-                cmds.add(SpawnBall::new(pos, tilemap_entity))
+                cmds.add(SpawnGoal::new(pos, level_root));
+                cmds.add(SpawnBall::new(pos, level_root))
             }
             TileKind::Floor => {}
         };
@@ -154,9 +163,8 @@ fn spawn_level(
             ..default()
         },
         Name::new(format!("Level {}", **current_level)),
-        DependOnState(vec![GameState::Play, GameState::Pause]),
-        Layer::World,
     ));
+    cmds.entity(level_root).add_child(tilemap_entity);
 }
 
 fn reload_on_change(
