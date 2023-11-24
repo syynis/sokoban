@@ -4,9 +4,8 @@ use bevy::{log, prelude::*};
 
 use super::{
     collision::{CollisionMap, CollisionResult},
-    handle_sokoban_events,
     history::HandleHistoryEvents,
-    player::Player,
+    player::{handle_player_actions, Player},
     Dir, GameState, Pos,
 };
 
@@ -21,7 +20,7 @@ impl Plugin for MomentumPlugin {
                 Update,
                 (
                     (
-                        handle_momentum.before(handle_sokoban_events),
+                        handle_momentum.before(handle_player_actions),
                         (apply_momentum, reset_momentum_timer)
                             .chain()
                             .after(HandleHistoryEvents),

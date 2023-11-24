@@ -1,12 +1,12 @@
-use bevy::{ecs::system::Command, prelude::*};
+use bevy::{ecs::system::Command, log, prelude::*};
 use leafwing_input_manager::prelude::*;
 
 use super::{
-    handle_sokoban_events,
-    history::{History, HistoryEvent},
+    collision::{CollisionMap, CollisionResult},
+    history::{HandleHistoryEvents, History, HistoryEvent},
     level::AssetCollection,
     momentum::{any_momentum_left, Momentum},
-    Dir, GameState, Pos, Pusher, SokobanBlock, SokobanEvents,
+    Dir, GameState, Pos, Pusher, SokobanBlock,
 };
 
 pub struct PlayerPlugin;
@@ -18,7 +18,7 @@ impl Plugin for PlayerPlugin {
             .add_systems(
                 Update,
                 handle_player_actions
-                    .before(handle_sokoban_events)
+                    .before(HandleHistoryEvents)
                     .run_if(not(any_momentum_left()))
                     .run_if(in_state(GameState::Play)),
             );
@@ -109,24 +109,43 @@ fn player_actions() -> InputMap<PlayerActions> {
 }
 
 pub fn handle_player_actions(
-    mut player_q: Query<Entity, With<Player>>,
+    mut player_q: Query<(&Pos, &mut Momentum), With<Player>>,
+    mut sokoban_entities: Query<&mut Momentum, Without<Player>>,
     player_actions: Query<&ActionState<PlayerActions>>,
     mut history_events: EventWriter<HistoryEvent>,
-    mut sokoban: SokobanEvents,
+    collision: Res<CollisionMap>,
 ) {
-    let Some(player) = player_q.get_single_mut().ok() else {
+    let Ok((player_pos, mut momentum)) = player_q.get_single_mut() else {
         return;
     };
 
-    let Some(player_actions) = player_actions.get_single().ok() else {
-        return;
-    };
+    let player_actions = player_actions
+        .get_single()
+        .expect("Player input map should exist");
 
-    player_actions.get_just_pressed().iter().for_each(|action| {
-        sokoban.move_entity(player, Dir::from(*action));
-        return;
-    });
-    if !player_actions.get_just_pressed().is_empty() {
-        history_events.send(HistoryEvent::Record)
+    let dir = player_actions
+        .get_just_pressed()
+        .first()
+        .map(|action| Dir::from(*action));
+
+    if let Some(direction) = dir {
+        match collision.push_collision(IVec2::from(player_pos), direction) {
+            CollisionResult::Push(push) => {
+                momentum.replace(direction);
+                for e in push.iter().skip(1) {
+                    sokoban_entities
+                        .get_component_mut::<Momentum>(*e)
+                        .expect("Dynamic objects have a momentum component")
+                        .replace(direction);
+                }
+                history_events.send(HistoryEvent::Record)
+            }
+            CollisionResult::Wall => {
+                log::debug!("Can't move");
+            }
+            CollisionResult::OutOfBounds => {
+                log::warn!("Player out of bounds")
+            }
+        }
     }
 }

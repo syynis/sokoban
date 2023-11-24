@@ -1,4 +1,4 @@
-use bevy::{ecs::system::SystemParam, prelude::*};
+use bevy::prelude::*;
 use bevy_ecs_tilemap::{prelude::TilemapGridSize, tiles::TilePos};
 use bevy_pile::tilemap::tile_to_world_pos;
 use leafwing_input_manager::prelude::*;
@@ -7,7 +7,7 @@ use crate::sokoban::momentum::Momentum;
 
 use self::{
     cleanup::cleanup_on_state_change,
-    collision::{CollisionMap, CollisionPlugin, CollisionResult},
+    collision::CollisionPlugin,
     entity::CommandHistoryPlugin,
     history::{HandleHistoryEvents, History, HistoryComponentPlugin, HistoryEvent, HistoryPlugin},
     level::LevelPlugin,
@@ -59,18 +59,13 @@ impl Plugin for SokobanPlugin {
         .register_type::<Dir>()
         .register_type::<History<Pos>>()
         .register_type::<SokobanBlock>()
-        .add_event::<SokobanEvent>()
         .add_systems(Startup, setup)
         .add_systems(
             Update,
             (
                 // Play
-                (
-                    handle_history.after(HandleHistoryEvents),
-                    handle_sokoban_events
-                        .run_if(on_event::<SokobanEvent>())
-                        .before(HandleHistoryEvents),
-                )
+                handle_history
+                    .after(HandleHistoryEvents)
                     .run_if(in_state(GameState::Play)),
                 escape,
             ),
@@ -234,49 +229,6 @@ impl From<Dir> for IVec2 {
             Dir::Left => IVec2::NEG_X,
             Dir::Down => IVec2::NEG_Y,
             Dir::Right => IVec2::X,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Event)]
-pub enum SokobanEvent {
-    Push { pusher: Entity, direction: Dir },
-}
-
-#[derive(SystemParam)]
-pub struct SokobanEvents<'w> {
-    writer: EventWriter<'w, SokobanEvent>,
-}
-
-impl<'w> SokobanEvents<'w> {
-    pub fn move_entity(&mut self, entity: Entity, direction: Dir) {
-        self.writer.send(SokobanEvent::Push {
-            pusher: entity,
-            direction,
-        });
-    }
-}
-
-fn handle_sokoban_events(
-    mut sokoban_entities: Query<(&mut Pos, &mut Momentum)>,
-    mut sokoban_events: EventReader<SokobanEvent>,
-    collision: Res<CollisionMap>,
-) {
-    for ev in sokoban_events.read() {
-        let SokobanEvent::Push {
-            pusher: entity,
-            direction,
-        } = ev;
-        if let Ok((pos, _)) = sokoban_entities.get(*entity) {
-            let push = collision.push_collision(IVec2::from(*pos), *direction);
-            if let CollisionResult::Push(push) = push {
-                for e in push.iter() {
-                    sokoban_entities
-                        .get_component_mut::<Momentum>(*e)
-                        .expect("Dynamic objects have a momentum component")
-                        .replace(*direction);
-                }
-            };
         }
     }
 }
