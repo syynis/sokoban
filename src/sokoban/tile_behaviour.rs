@@ -4,6 +4,7 @@ use bevy::{ecs::system::Command, prelude::*};
 
 use super::{
     ball::Ball,
+    entity::DespawnSokobanEntityCommand,
     level::AssetCollection,
     level_select::CurrentLevel,
     momentum::{any_momentum_left, apply_momentum, can_apply_momentum, Momentum},
@@ -74,7 +75,7 @@ fn handle_void(
 ) {
     for (entity, pos) in sokoban_query.iter() {
         if void_query.iter().any(|void_pos| void_pos == pos) {
-            cmds.entity(entity).despawn_recursive();
+            cmds.add(DespawnSokobanEntityCommand(entity));
         }
     }
 }

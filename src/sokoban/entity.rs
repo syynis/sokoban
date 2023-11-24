@@ -1,69 +1,101 @@
-use bevy::prelude::*;
-use bevy_ecs_tilemap::tiles::TileStorage;
+use bevy::{ecs::system::Command, prelude::*};
 
 use super::{
-    history::History, level::AssetCollection, player::Player, DynamicBundle, GameState, Pos,
+    ball::Ball,
+    history::{CurrentTime, HandleHistoryEvents, History, HistoryEvent, Timestamp},
+    level::LevelRoot,
+    player::Player,
+    DynamicBundle, Pos,
 };
 
 pub struct CommandHistoryPlugin;
 
 impl Plugin for CommandHistoryPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<CommandHistory>().add_systems(
-            Update,
-            (despawn, rollback).run_if(in_state(GameState::Play)),
-        );
+        app.init_resource::<CommandHistory>()
+            .add_systems(Update, rewind.in_set(HandleHistoryEvents));
     }
 }
 
 #[derive(Resource, Deref, DerefMut, Default)]
-pub struct CommandHistory(Vec<Box<dyn UndoableCommand>>);
+pub struct CommandHistory(Vec<(Timestamp, Box<dyn UndoableCommand>)>);
 
-pub fn despawn(
+pub fn rewind(
     mut cmds: Commands,
-    assets: Res<AssetCollection>,
-    level_q: Query<Entity, With<TileStorage>>,
-    player_q: Query<(Entity, &Pos, &History<Pos>), With<Player>>,
+    mut history_events: EventReader<HistoryEvent>,
     mut command_history: ResMut<CommandHistory>,
-    keys: Res<Input<KeyCode>>,
+    current_time: Res<CurrentTime>,
 ) {
-    let Ok((entity, pos, history)) = player_q.get_single() else {
-        return;
-    };
-    let Ok(level_entity) = level_q.get_single() else {
-        return;
-    };
-    let player_texture = assets.player.clone();
-    let despawn = DespawnSokobanEntity {
-        entity,
-        pos: *pos,
-        history: history.clone(),
-        texture: player_texture,
-        level_entity,
-        bundle: (Name::new("Player"), Player, DynamicBundle::default()),
-    };
-    if keys.just_pressed(KeyCode::J) {
-        println!("Despawn");
-        command_history.push(despawn.execute(&mut cmds));
-    }
-}
-
-pub fn rollback(
-    mut cmds: Commands,
-    mut command_history: ResMut<CommandHistory>,
-    keys: Res<Input<KeyCode>>,
-) {
-    if keys.just_pressed(KeyCode::H) {
-        println!("Rollback");
-        if let Some(last) = command_history.pop() {
-            last.rollback(&mut cmds);
+    for ev in history_events.read() {
+        match ev {
+            HistoryEvent::Record => {}
+            HistoryEvent::Rewind => loop {
+                let Some((time, command)) = command_history.last() else {
+                    break;
+                };
+                if *time == **current_time {
+                    command.rollback(&mut cmds);
+                    command_history.pop();
+                } else {
+                    break;
+                }
+            },
+            HistoryEvent::Reset => todo!(),
         }
     }
 }
 
 pub trait UndoableCommand: Send + Sync + 'static {
-    fn execute(&self, cmds: &mut Commands) -> Box<dyn UndoableCommand>;
+    fn execute(&self, world: &mut World) -> Box<dyn UndoableCommand>;
     fn rollback(&self, cmds: &mut Commands);
+}
+
+pub struct DespawnSokobanEntityCommand(pub Entity);
+
+impl Command for DespawnSokobanEntityCommand {
+    fn apply(self, world: &mut World) {
+        let (pos, history, texture, is_player, is_ball) =
+            if let Ok((pos, history, texture, is_player, is_ball)) = world
+                .query::<(&Pos, &History<Pos>, &Handle<Image>, Has<Player>, Has<Ball>)>()
+                .get(world, self.0)
+            {
+                (*pos, history.clone(), texture.clone(), is_player, is_ball)
+            } else {
+                todo!()
+            };
+
+        let Ok(level_entity) = world
+            .query_filtered::<Entity, With<LevelRoot>>()
+            .get_single(world)
+        else {
+            todo!()
+        };
+
+        let current_time = *world.resource::<CurrentTime>();
+        world.resource_scope(|world, mut command_history: Mut<CommandHistory>| {
+            if is_player {
+                let despawn = DespawnSokobanEntity {
+                    entity: self.0,
+                    pos,
+                    history,
+                    texture,
+                    level_entity,
+                    bundle: (Name::new("Player"), Player, DynamicBundle::default()),
+                };
+                command_history.push((*current_time, despawn.execute(world)));
+            } else if is_ball {
+                let despawn = DespawnSokobanEntity {
+                    entity: self.0,
+                    pos,
+                    history,
+                    texture,
+                    level_entity,
+                    bundle: (Name::new("Ball"), Ball, DynamicBundle::default()),
+                };
+                command_history.push((*current_time, despawn.execute(world)));
+            }
+        });
+    }
 }
 
 #[derive(Clone)]
@@ -83,8 +115,8 @@ impl<B> UndoableCommand for DespawnSokobanEntity<B>
 where
     B: Bundle + Clone,
 {
-    fn execute(&self, cmds: &mut Commands) -> Box<dyn UndoableCommand> {
-        cmds.entity(self.entity).despawn_recursive();
+    fn execute(&self, world: &mut World) -> Box<dyn UndoableCommand> {
+        world.despawn(self.entity);
         Box::new(self.clone())
     }
 

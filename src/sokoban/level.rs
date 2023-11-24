@@ -95,6 +95,7 @@ fn spawn_level(
             SpatialBundle::default(),
             DependOnState(vec![GameState::Play, GameState::Pause]),
             Name::new("Level Root"),
+            LevelRoot,
         ))
         .id();
     let tilemap_entity = cmds.spawn_empty().id();

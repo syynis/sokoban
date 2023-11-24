@@ -2,7 +2,7 @@ use bevy::{ecs::system::Command, prelude::*};
 
 use super::{history::History, level::AssetCollection, momentum::Momentum, Pos, SokobanBlock};
 
-#[derive(Component)]
+#[derive(Component, Clone)]
 pub struct Ball;
 
 pub struct SpawnBall {
