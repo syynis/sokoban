@@ -5,11 +5,10 @@ use bevy::{ecs::system::Command, prelude::*};
 use super::{
     ball::Ball,
     entity::DespawnSokobanEntityCommand,
-    level::AssetCollection,
     level_select::CurrentLevel,
     momentum::{any_momentum_left, apply_momentum, can_apply_momentum, Momentum},
     player::Player,
-    GameState, Pos,
+    AssetsCollection, GameState, Pos,
 };
 
 pub struct TileBehaviourPlugin;
@@ -111,7 +110,7 @@ impl SpawnGoal {
 
 impl Command for SpawnGoal {
     fn apply(self, world: &mut World) {
-        let texture = world.resource::<AssetCollection>().goal.clone();
+        let texture = world.resource::<AssetsCollection>().goal.clone();
 
         world
             .entity_mut(self.tilemap_entity)

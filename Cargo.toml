@@ -11,6 +11,7 @@ bevy_pancam = {version = "0.10", features = ["bevy_egui"]}
 #bevy_ecs_tilemap = {git = "https://github.com/StarArawn/bevy_ecs_tilemap", branch = "main"}
 bevy_ecs_tilemap = {git = "https://github.com/divark/bevy_ecs_tilemap", branch = "0.12-fixes"}
 bevy_pile = {git = "https://github.com/syynis/bevy_pile", branch = "main"}
+bevy_asset_loader = { version = "0.18", features = ["2d"] }
 serde = "1.0"
 anyhow = "1.0"
 ron = "0.8"

@@ -6,10 +6,7 @@ use bevy::{
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_pancam::{PanCam, PanCamPlugin};
 use bevy_pile::{cursor::WorldCursorPlugin, tilemap::TileCursorPlugin};
-use sokoban::{
-    level::{AssetCollection, Levels},
-    SokobanPlugin,
-};
+use sokoban::SokobanPlugin;
 
 pub mod sokoban;
 
@@ -42,6 +39,7 @@ fn main() {
         SokobanPlugin,
     ))
     .insert_resource(ClearColor(Color::ANTIQUE_WHITE))
+    .insert_resource(Msaa::Off)
     .add_systems(Startup, setup);
 
     #[cfg(feature = "inspector")]
@@ -52,7 +50,7 @@ fn main() {
     app.run();
 }
 
-fn setup(mut cmds: Commands, asset_server: Res<AssetServer>) {
+fn setup(mut cmds: Commands) {
     cmds.spawn((
         Camera2dBundle::default(),
         PanCam {
@@ -61,17 +59,4 @@ fn setup(mut cmds: Commands, asset_server: Res<AssetServer>) {
             ..default()
         },
     ));
-
-    let levels: Handle<Levels> = asset_server.load("test.levels");
-    let tiles: Handle<Image> = asset_server.load("tiles.png");
-    let player: Handle<Image> = asset_server.load("player.png");
-    let ball: Handle<Image> = asset_server.load("ball.png");
-    let goal: Handle<Image> = asset_server.load("goal.png");
-    cmds.insert_resource(AssetCollection {
-        levels,
-        tiles,
-        player,
-        ball,
-        goal,
-    });
 }

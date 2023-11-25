@@ -3,6 +3,7 @@ use bevy::{
     prelude::*,
     reflect::{TypePath, TypeUuid},
 };
+use bevy_asset_loader::prelude::AssetCollection;
 use bevy_ecs_tilemap::prelude::*;
 use serde::Deserialize;
 use thiserror::Error;
@@ -14,7 +15,7 @@ use super::{
     level_select::CurrentLevel,
     player::SpawnPlayer,
     tile_behaviour::{Rubber, Sand, SpawnGoal, Void},
-    GameState, Pos, SokobanBlock,
+    AssetsCollection, GameState, Pos, SokobanBlock,
 };
 
 pub struct LevelPlugin;
@@ -24,7 +25,7 @@ impl Plugin for LevelPlugin {
         app.register_asset_loader(LevelLoader)
             .init_asset::<Levels>()
             .register_type::<Level>()
-            .register_type::<AssetCollection>()
+            .register_type::<LevelCollection>()
             .add_systems(
                 OnTransition {
                     from: GameState::LevelTransition,
@@ -43,14 +44,11 @@ impl Plugin for LevelPlugin {
     }
 }
 
-#[derive(Resource, Reflect, Default)]
+#[derive(Resource, Reflect, Default, Debug, AssetCollection)]
 #[reflect(Resource)]
-pub struct AssetCollection {
+pub struct LevelCollection {
+    #[asset(path = "test.levels")]
     pub levels: Handle<Levels>,
-    pub tiles: Handle<Image>,
-    pub player: Handle<Image>,
-    pub ball: Handle<Image>,
-    pub goal: Handle<Image>,
 }
 
 fn center_camera_on_level(
@@ -76,9 +74,10 @@ fn spawn_level(
     mut cmds: Commands,
     current_level: Res<CurrentLevel>,
     levels_assets: Res<Assets<Levels>>,
-    asset_collection: Res<AssetCollection>,
+    asset_collection: Res<AssetsCollection>,
+    level_collection: Res<LevelCollection>,
 ) {
-    let levels_handle = &asset_collection.levels;
+    let levels_handle = &level_collection.levels;
     let tiles_handle = &asset_collection.tiles;
 
     let levels = levels_assets

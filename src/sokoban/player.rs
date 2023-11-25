@@ -4,9 +4,8 @@ use leafwing_input_manager::prelude::*;
 use super::{
     collision::{CollisionMap, CollisionResult},
     history::{HandleHistoryEvents, History, HistoryEvent},
-    level::AssetCollection,
     momentum::{any_momentum_left, Momentum},
-    Dir, GameState, Pos, Pusher, SokobanBlock,
+    AssetsCollection, Dir, GameState, Pos, Pusher, SokobanBlock,
 };
 
 pub struct PlayerPlugin;
@@ -63,7 +62,7 @@ impl SpawnPlayer {
 
 impl Command for SpawnPlayer {
     fn apply(self, world: &mut World) {
-        let texture = world.resource::<AssetCollection>().player.clone();
+        let texture = world.resource::<AssetsCollection>().player.clone();
 
         world
             .entity_mut(self.tilemap_entity)

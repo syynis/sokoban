@@ -1,9 +1,11 @@
 use bevy::{ecs::system::Command, prelude::*};
 use leafwing_input_manager::prelude::ActionState;
 
-use crate::AssetCollection;
-
-use super::{cleanup::DependOnState, level::Levels, GameState, SokobanActions};
+use super::{
+    cleanup::DependOnState,
+    level::{LevelCollection, Levels},
+    GameState, SokobanActions,
+};
 
 pub struct LevelSelectPlugin;
 
@@ -48,7 +50,7 @@ fn handle_buttons(
 }
 
 fn ui_navigation(
-    asset_collection: Res<AssetCollection>,
+    level_collection: Res<LevelCollection>,
     levels: Res<Assets<Levels>>,
     mut current_level: ResMut<CurrentLevel>,
     navigation_actions: Query<&ActionState<SokobanActions>>,
@@ -58,7 +60,7 @@ fn ui_navigation(
         return;
     };
     let amount_levels = levels
-        .get(&asset_collection.levels)
+        .get(&level_collection.levels)
         .expect("Level assets should be loaded")
         .len();
     let cols = 5;
@@ -105,7 +107,7 @@ pub struct SpawnLevelSelectButtons;
 
 impl Command for SpawnLevelSelectButtons {
     fn apply(self, world: &mut World) {
-        let assets = world.resource::<AssetCollection>();
+        let assets = world.resource::<LevelCollection>();
         let amount_levels = world
             .resource::<Assets<Levels>>()
             .get(&assets.levels)

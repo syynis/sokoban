@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy_asset_loader::prelude::{AssetCollection, LoadingState, LoadingStateAppExt};
 use bevy_ecs_tilemap::{prelude::TilemapGridSize, tiles::TilePos};
 use bevy_pile::tilemap::tile_to_world_pos;
 use leafwing_input_manager::prelude::*;
@@ -10,7 +11,7 @@ use self::{
     collision::CollisionPlugin,
     entity::CommandHistoryPlugin,
     history::{HandleHistoryEvents, History, HistoryComponentPlugin, HistoryEvent, HistoryPlugin},
-    level::LevelPlugin,
+    level::{LevelCollection, LevelPlugin},
     level_select::LevelSelectPlugin,
     level_transition::LevelTransitionPlugin,
     main_menu::MainMenuPlugin,
@@ -55,10 +56,16 @@ impl Plugin for SokobanPlugin {
             CommandHistoryPlugin,
         ))
         .add_state::<GameState>()
+        .add_loading_state(
+            LoadingState::new(GameState::AssetLoading).continue_to_state(GameState::MainMenu),
+        )
+        .add_collection_to_loading_state::<_, AssetsCollection>(GameState::AssetLoading)
+        .add_collection_to_loading_state::<_, LevelCollection>(GameState::AssetLoading)
         .register_type::<Pos>()
         .register_type::<Dir>()
         .register_type::<History<Pos>>()
         .register_type::<SokobanBlock>()
+        .register_type::<AssetsCollection>()
         .add_systems(Startup, setup)
         .add_systems(
             Update,
@@ -81,11 +88,25 @@ impl Plugin for SokobanPlugin {
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
 pub enum GameState {
     #[default]
+    AssetLoading,
     MainMenu,
     LevelSelect,
     LevelTransition,
     Play,
     Pause,
+}
+
+#[derive(Resource, Reflect, Default, AssetCollection, Debug)]
+#[reflect(Resource)]
+pub struct AssetsCollection {
+    #[asset(path = "tiles.png")]
+    pub tiles: Handle<Image>,
+    #[asset(path = "player.png")]
+    pub player: Handle<Image>,
+    #[asset(path = "ball.png")]
+    pub ball: Handle<Image>,
+    #[asset(path = "goal.png")]
+    pub goal: Handle<Image>,
 }
 
 #[derive(Actionlike, Clone, Copy, Hash, Debug, PartialEq, Eq, Reflect)]
