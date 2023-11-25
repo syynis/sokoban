@@ -2,7 +2,7 @@ use bevy::{ecs::system::Command, prelude::*};
 
 use super::{
     ball::Ball,
-    history::{CurrentTime, HandleHistoryEvents, History, HistoryEvent, Timestamp},
+    history::{CurrentTime, HandleHistoryEvents, History, HistoryEvent},
     level::LevelRoot,
     player::Player,
     DynamicBundle, Pos,
@@ -12,13 +12,15 @@ pub struct CommandHistoryPlugin;
 
 impl Plugin for CommandHistoryPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<CommandHistory>()
-            .add_systems(Update, rewind.in_set(HandleHistoryEvents));
+        app.init_resource::<CommandHistory>().add_systems(
+            Update,
+            (rewind, apply_deferred).chain().before(HandleHistoryEvents),
+        );
     }
 }
 
 #[derive(Resource, Deref, DerefMut, Default)]
-pub struct CommandHistory(Vec<(Timestamp, Box<dyn UndoableCommand>)>);
+pub struct CommandHistory(Vec<(usize, Box<dyn UndoableCommand>)>);
 
 pub fn rewind(
     mut cmds: Commands,
@@ -40,7 +42,7 @@ pub fn rewind(
                     break;
                 }
             },
-            HistoryEvent::Reset => todo!(),
+            HistoryEvent::Reset => {}
         }
     }
 }
@@ -116,7 +118,7 @@ where
     B: Bundle + Clone,
 {
     fn execute(&self, world: &mut World) -> Box<dyn UndoableCommand> {
-        world.despawn(self.entity);
+        world.entity_mut(self.entity).despawn_recursive();
         Box::new(self.clone())
     }
 

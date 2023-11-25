@@ -23,11 +23,11 @@ impl Plugin for HistoryPlugin {
 }
 
 #[derive(Default)]
-pub struct HistoryComponentPlugin<C: Component + Clone + PartialEq> {
+pub struct HistoryComponentPlugin<C: Component + Clone> {
     phantom: PhantomData<C>,
 }
 
-impl<C: Component + Clone + PartialEq> Plugin for HistoryComponentPlugin<C> {
+impl<C: Component + Clone> Plugin for HistoryComponentPlugin<C> {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
@@ -43,16 +43,7 @@ pub struct HandleHistoryEvents;
 
 #[derive(Resource, Reflect, Default, Copy, Clone, Debug, Deref, DerefMut)]
 #[reflect(Resource)]
-pub struct CurrentTime(pub Timestamp);
-
-impl CurrentTime {
-    pub fn reset(&mut self) {
-        ***self = 0;
-    }
-}
-
-#[derive(Debug, Clone, Default, Copy, Reflect, Deref, DerefMut, PartialEq)]
-pub struct Timestamp(pub usize);
+pub struct CurrentTime(pub usize);
 
 #[derive(Event)]
 pub enum HistoryEvent {
@@ -62,7 +53,7 @@ pub enum HistoryEvent {
 }
 
 fn reset_time(mut current_time: ResMut<CurrentTime>) {
-    current_time.reset();
+    **current_time = 0;
 }
 
 fn handle_time(
@@ -72,39 +63,33 @@ fn handle_time(
     for ev in history_events.read() {
         match ev {
             HistoryEvent::Record => current_time.add_assign(1),
-            HistoryEvent::Rewind => *current_time.0 = current_time.saturating_sub(1),
+            HistoryEvent::Rewind => **current_time = current_time.saturating_sub(1),
             HistoryEvent::Reset => current_time.add_assign(1),
         }
     }
 }
 
 #[derive(Component, Clone, Default, Deref, DerefMut, Reflect)]
-pub struct History<C: Component + Clone + PartialEq>(Vec<(Timestamp, C)>);
+pub struct History<C: Component + Clone>(Vec<(usize, C)>);
 
 fn handle_history_commands<C>(
     mut history_query: Query<(&mut History<C>, &mut C)>,
     mut history_events: EventReader<HistoryEvent>,
     current_time: Res<CurrentTime>,
 ) where
-    C: Component + Clone + PartialEq,
+    C: Component + Clone,
 {
     for ev in history_events.read() {
         match ev {
             HistoryEvent::Record => {
                 for (mut history, component) in history_query.iter_mut() {
-                    if let Some((_, last)) = history.last() {
-                        if !component.eq(&last) {
-                            history.push((**current_time, component.clone()));
-                        }
-                    } else {
-                        history.push((**current_time, component.clone()));
-                    }
+                    history.push((**current_time, component.clone()));
                 }
             }
             HistoryEvent::Rewind => {
                 for (mut history, mut component) in history_query.iter_mut() {
                     if let Some((t, _)) = history.last() {
-                        if (t.wrapping_sub(1)).eq(&current_time.0 .0) {
+                        if (t + 1) == **current_time {
                             let (_, prev_component) = history.pop().unwrap();
                             *component = prev_component;
                         }
@@ -114,7 +99,7 @@ fn handle_history_commands<C>(
             HistoryEvent::Reset => {
                 for (mut history, mut component) in history_query.iter_mut() {
                     if let Some(first) = history.first() {
-                        let (_, first_component) = first.clone();
+                        let first_component = first.1.clone();
                         history.push((**current_time, component.clone()));
                         *component = first_component;
                     }
