@@ -17,7 +17,7 @@ fn main() {
     let mut app = App::new();
     app.edit_schedule(Main, |schedule| {
         schedule.set_build_settings(ScheduleBuildSettings {
-            ambiguity_detection: LogLevel::Warn,
+            ambiguity_detection: LogLevel::Error,
             ..default()
         });
     });
@@ -38,13 +38,18 @@ fn main() {
             }),
         PanCamPlugin,
         WorldCursorPlugin::<PanCam>::default(),
-        WorldInspectorPlugin::default(),
         TileCursorPlugin,
         SokobanPlugin,
     ))
     .insert_resource(ClearColor(Color::ANTIQUE_WHITE))
-    .add_systems(Startup, setup)
-    .run();
+    .add_systems(Startup, setup);
+
+    #[cfg(feature = "inspector")]
+    {
+        app.add_plugins(WorldInspectorPlugin::new());
+    }
+
+    app.run();
 }
 
 fn setup(mut cmds: Commands, asset_server: Res<AssetServer>) {

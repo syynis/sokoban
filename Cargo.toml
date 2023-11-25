@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 bevy = { version = "0.12" }
-bevy-inspector-egui = "0.21"
+bevy-inspector-egui = {version = "0.21", optional = true}
 leafwing-input-manager = "0.11.1"
 bevy_pancam = {version = "0.10", features = ["bevy_egui"]}
 #bevy_ecs_tilemap = {git = "https://github.com/StarArawn/bevy_ecs_tilemap", branch = "main"}
@@ -18,8 +18,10 @@ bevy_tweening = "0.9"
 thiserror = "1.0"
 
 [features]
+default = [ "hot", "dyn", "inspector" ]
 hot = [ "bevy/file_watcher" ]
 dyn = [ "bevy/dynamic_linking" ]
+inspector = [ "bevy-inspector-egui" ]
 
 [profile.wasm-release]
 inherits = "release"
