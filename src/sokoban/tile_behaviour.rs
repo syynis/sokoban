@@ -6,7 +6,7 @@ use super::{
     ball::Ball,
     entity::DespawnSokobanEntityCommand,
     level_select::CurrentLevel,
-    momentum::{any_momentum_left, apply_momentum, can_apply_momentum, Momentum},
+    momentum::{any_momentum_left, apply_momentum, can_apply_momentum, handle_momentum, Momentum},
     player::Player,
     AssetsCollection, GameState, Pos,
 };
@@ -20,7 +20,7 @@ impl Plugin for TileBehaviourPlugin {
             (
                 (
                     handle_rubber,
-                    handle_void.before(apply_momentum),
+                    handle_void.after(handle_momentum).before(apply_momentum),
                     handle_sand.after(apply_momentum),
                 )
                     .run_if(can_apply_momentum()),

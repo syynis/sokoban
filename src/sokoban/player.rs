@@ -108,13 +108,13 @@ fn player_actions() -> InputMap<PlayerActions> {
 }
 
 pub fn handle_player_actions(
-    mut player_q: Query<(&Pos, &mut Momentum), With<Player>>,
-    mut sokoban_entities: Query<&mut Momentum, Without<Player>>,
+    player_q: Query<&Pos, With<Player>>,
+    mut sokoban_entities: Query<&mut Momentum>,
     player_actions: Query<&ActionState<PlayerActions>>,
     mut history_events: EventWriter<HistoryEvent>,
     collision: Res<CollisionMap>,
 ) {
-    let Ok((player_pos, mut momentum)) = player_q.get_single_mut() else {
+    let Ok(player_pos) = player_q.get_single() else {
         return;
     };
 
@@ -122,29 +122,28 @@ pub fn handle_player_actions(
         .get_single()
         .expect("Player input map should exist");
 
-    let dir = player_actions
-        .get_just_pressed()
-        .first()
-        .map(|action| Dir::from(*action));
-
-    if let Some(direction) = dir {
+    for direction in player_actions
+        .get_pressed()
+        .iter()
+        .map(|action| Dir::from(*action))
+    {
         match collision.push_collision(IVec2::from(player_pos), direction) {
             CollisionResult::Push(push) => {
-                momentum.replace(direction);
-                for e in push.iter().skip(1) {
+                for e in push.iter() {
                     sokoban_entities
                         .get_component_mut::<Momentum>(*e)
                         .expect("Dynamic objects have a momentum component")
                         .replace(direction);
                 }
-                history_events.send(HistoryEvent::Record)
+                history_events.send(HistoryEvent::Record);
+                break;
             }
             CollisionResult::Wall => {
                 log::debug!("Can't move");
             }
             CollisionResult::OutOfBounds => {
-                log::warn!("Player out of bounds")
+                log::warn!("Player out of bounds");
             }
-        }
+        };
     }
 }

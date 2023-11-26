@@ -36,7 +36,7 @@ impl Plugin for MomentumPlugin {
 #[derive(Default, Component, Copy, Clone, Deref, DerefMut, Reflect)]
 pub struct Momentum(pub Option<Dir>);
 
-fn handle_momentum(
+pub fn handle_momentum(
     mut momentum_query: Query<(Entity, &mut Pos, &mut Momentum)>,
     collision: Res<CollisionMap>,
 ) {
