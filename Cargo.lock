@@ -910,7 +910,7 @@ dependencies = [
 [[package]]
 name = "bevy_pile"
 version = "0.1.0"
-source = "git+https://github.com/syynis/bevy_pile?branch=main#bc986a60c29c7398cee0ec17aa2a5f280be4a96e"
+source = "git+https://github.com/syynis/bevy_pile?branch=main#77e9c1491281c5b60200078d62735349b55a68f4"
 dependencies = [
  "anyhow",
  "bevy",

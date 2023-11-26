@@ -1,23 +1,25 @@
-use bevy::{
-    ecs::schedule::{LogLevel, ScheduleBuildSettings},
-    log::LogPlugin,
-    prelude::*,
-};
-use bevy_inspector_egui::quick::WorldInspectorPlugin;
-use bevy_pancam::{PanCam, PanCamPlugin};
-use bevy_pile::{cursor::WorldCursorPlugin, tilemap::TileCursorPlugin};
-use sokoban::SokobanPlugin;
+use bevy::prelude::*;
 
 pub mod sokoban;
 
 fn main() {
     let mut app = App::new();
     app.edit_schedule(Main, |schedule| {
-        schedule.set_build_settings(ScheduleBuildSettings {
-            ambiguity_detection: LogLevel::Error,
+        schedule.set_build_settings(bevy::ecs::schedule::ScheduleBuildSettings {
+            ambiguity_detection: bevy::ecs::schedule::LogLevel::Error,
             ..default()
         });
     });
+    #[cfg(not(debug_assertions))]
+    let log_plugin = bevy::log::LogPlugin {
+        filter: "off".to_string(),
+        ..default()
+    };
+    #[cfg(debug_assertions)]
+    let log_plugin = bevy::log::LogPlugin {
+        level: bevy::log::Level::DEBUG,
+        filter: "info,wgpu_core=error,wgpu_hal=error,sokoban=debug".into(),
+    };
     app.add_plugins((
         DefaultPlugins
             .set(WindowPlugin {
@@ -29,34 +31,35 @@ fn main() {
                 ..default()
             })
             .set(ImagePlugin::default_nearest())
-            .set(LogPlugin {
-                level: bevy::log::Level::DEBUG,
-                filter: "info,wgpu_core=warn,wgpu_hal=warn,sokoban=debug".into(),
-            }),
-        PanCamPlugin,
-        WorldCursorPlugin::<PanCam>::default(),
-        TileCursorPlugin,
-        SokobanPlugin,
+            .set(log_plugin),
+        sokoban::SokobanPlugin,
     ))
     .insert_resource(ClearColor(Color::ANTIQUE_WHITE))
     .insert_resource(Msaa::Off)
     .add_systems(Startup, setup);
 
     #[cfg(feature = "inspector")]
+    app.add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new());
+
+    #[cfg(debug_assertions)]
     {
-        app.add_plugins(WorldInspectorPlugin::new());
+        app.add_plugins(bevy_pancam::PanCamPlugin);
     }
 
     app.run();
 }
 
+#[derive(Component, Default)]
+struct GameCamera;
 fn setup(mut cmds: Commands) {
     cmds.spawn((
         Camera2dBundle::default(),
-        PanCam {
+        #[cfg(debug_assertions)]
+        bevy_pancam::PanCam {
             grab_buttons: vec![MouseButton::Middle],
             enabled: true,
             ..default()
         },
+        GameCamera,
     ));
 }

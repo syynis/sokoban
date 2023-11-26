@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use bevy_asset_loader::prelude::{AssetCollection, LoadingState, LoadingStateAppExt};
-use bevy_ecs_tilemap::{prelude::TilemapGridSize, tiles::TilePos};
+use bevy_ecs_tilemap::{prelude::TilemapGridSize, tiles::TilePos, TilemapPlugin};
 use bevy_pile::tilemap::tile_to_world_pos;
 use leafwing_input_manager::prelude::*;
 
@@ -54,6 +54,7 @@ impl Plugin for SokobanPlugin {
             LevelTransitionPlugin,
             TileBehaviourPlugin,
             CommandHistoryPlugin,
+            TilemapPlugin,
         ))
         .add_state::<GameState>()
         .add_loading_state(
