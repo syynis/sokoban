@@ -7,6 +7,7 @@ use leafwing_input_manager::prelude::*;
 use crate::sokoban::momentum::Momentum;
 
 use self::{
+    audio::{AudioCollection, GameAudioPlugin},
     cleanup::cleanup_on_state_change,
     collision::CollisionPlugin,
     entity::CommandHistoryPlugin,
@@ -21,6 +22,7 @@ use self::{
     tile_behaviour::TileBehaviourPlugin,
 };
 
+pub mod audio;
 pub mod ball;
 pub mod cleanup;
 pub mod collision;
@@ -55,6 +57,7 @@ impl Plugin for SokobanPlugin {
             TileBehaviourPlugin,
             CommandHistoryPlugin,
             TilemapPlugin,
+            GameAudioPlugin,
         ))
         .add_state::<GameState>()
         .add_loading_state(
@@ -62,6 +65,7 @@ impl Plugin for SokobanPlugin {
         )
         .add_collection_to_loading_state::<_, AssetsCollection>(GameState::AssetLoading)
         .add_collection_to_loading_state::<_, LevelCollection>(GameState::AssetLoading)
+        .add_collection_to_loading_state::<_, AudioCollection>(GameState::AssetLoading)
         .register_type::<Pos>()
         .register_type::<Dir>()
         .register_type::<History<Pos>>()
