@@ -4,19 +4,36 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bevy = { version = "0.12" }
-bevy-inspector-egui = {version = "0.21", optional = true}
 leafwing-input-manager = "0.11.1"
-bevy_pancam = {version = "0.10", features = ["bevy_egui"]}
-#bevy_ecs_tilemap = {git = "https://github.com/StarArawn/bevy_ecs_tilemap", branch = "main"}
-bevy_ecs_tilemap = {git = "https://github.com/divark/bevy_ecs_tilemap", branch = "0.12-fixes"}
-bevy_pile = {git = "https://github.com/syynis/bevy_pile", branch = "main"}
-bevy_asset_loader = { version = "0.18", features = ["2d"] }
+bevy_tweening = "0.9"
 serde = "1.0"
 anyhow = "1.0"
 ron = "0.8"
-bevy_tweening = "0.9"
 thiserror = "1.0"
+
+[dependencies.bevy]
+version = "0.12"
+features = [ "wav" ]
+
+[dependencies.bevy_asset_loader]
+version = "0.18"
+features = [ "2d" ]
+
+[dependencies.bevy-inspector-egui]
+version = "0.21"
+optional = true
+
+[dependencies.bevy_pancam]
+version = "0.10"
+features = ["bevy_egui"]
+
+[dependencies.bevy_ecs_tilemap]
+git = "https://github.com/divark/bevy_ecs_tilemap"
+branch = "0.12-fixes"
+
+[dependencies.bevy_pile]
+git = "https://github.com/syynis/bevy_pile"
+branch = "main"
 
 [features]
 default = [ "hot", "dyn", "inspector" ]
