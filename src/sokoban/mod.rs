@@ -71,6 +71,7 @@ impl Plugin for SokobanPlugin {
         .register_type::<History<Pos>>()
         .register_type::<SokobanBlock>()
         .register_type::<AssetsCollection>()
+        .add_event::<SokobanEvent>()
         .add_systems(Startup, setup)
         .insert_resource(Time::<Fixed>::from_hz(8.))
         .add_systems(
@@ -151,6 +152,15 @@ fn setup(mut cmds: Commands) {
         },),
         Name::new("SokobanActions"),
     ));
+}
+
+#[derive(Debug, Clone, Event)]
+pub enum SokobanEvent {
+    PlayerMoved,
+    PlayerPush,
+    BallPush,
+    BallHitWall,
+    EntityInVoid,
 }
 
 fn undo(

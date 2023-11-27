@@ -5,7 +5,7 @@ use super::{
     collision::{CollisionMap, CollisionResult},
     history::{HandleHistoryEvents, History, HistoryEvent},
     momentum::{any_momentum_left, Momentum},
-    AssetsCollection, Dir, DynamicBundle, GameState, Pos,
+    AssetsCollection, Dir, DynamicBundle, GameState, Pos, SokobanEvent,
 };
 
 pub struct PlayerPlugin;
@@ -120,6 +120,7 @@ pub fn player_movement(
     mut sokoban_entities: Query<&mut Momentum>,
     player_actions: Query<&ActionState<PlayerActions>>,
     mut history_events: EventWriter<HistoryEvent>,
+    mut sokoban_events: EventWriter<SokobanEvent>,
     collision: Res<CollisionMap>,
     time: Res<Time>,
 ) {
@@ -152,6 +153,10 @@ pub fn player_movement(
                         .replace(direction);
                 }
                 history_events.send(HistoryEvent::Record);
+                if push.len() == 1 {
+                    sokoban_events.send(SokobanEvent::PlayerMoved);
+                }
+                sokoban_events.send(SokobanEvent::PlayerPush);
                 break;
             }
             CollisionResult::Wall => {
