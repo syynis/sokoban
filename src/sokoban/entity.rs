@@ -4,7 +4,7 @@ use super::{
     ball::Ball,
     history::{CurrentTime, HandleHistoryEvents, History, HistoryEvent},
     level::LevelRoot,
-    player::Player,
+    player::{MovementTimer, Player},
     DynamicBundle, Pos,
 };
 
@@ -82,7 +82,12 @@ impl Command for DespawnSokobanEntityCommand {
                     history,
                     texture,
                     level_entity,
-                    bundle: (Name::new("Player"), Player, DynamicBundle::default()),
+                    bundle: (
+                        Name::new("Player"),
+                        Player,
+                        DynamicBundle::default(),
+                        MovementTimer::default(),
+                    ),
                 };
                 command_history.push((*current_time, despawn.execute(world)));
             } else if is_ball {

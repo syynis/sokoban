@@ -1,6 +1,6 @@
 use bevy::{ecs::system::Command, prelude::*};
 
-use super::{history::History, momentum::Momentum, AssetsCollection, Pos, SokobanBlock};
+use super::{history::History, AssetsCollection, DynamicBundle, Pos};
 
 #[derive(Component, Clone)]
 pub struct Ball;
@@ -31,13 +31,12 @@ impl Command for SpawnBall {
                     Ball,
                     self.pos,
                     History::<Pos>::default(),
-                    SokobanBlock::Dynamic,
+                    DynamicBundle::default(),
                     SpriteBundle {
                         texture,
                         transform: Transform::from_translation(2. * Vec3::Z),
                         ..default()
                     },
-                    Momentum::default(),
                 ));
             });
     }

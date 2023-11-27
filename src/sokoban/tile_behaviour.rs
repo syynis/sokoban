@@ -6,7 +6,7 @@ use super::{
     ball::Ball,
     entity::DespawnSokobanEntityCommand,
     level_select::CurrentLevel,
-    momentum::{any_momentum_left, apply_momentum, can_apply_momentum, handle_momentum, Momentum},
+    momentum::{any_momentum_left, apply_momentum, transfer_momentum, Momentum},
     player::Player,
     AssetsCollection, GameState, Pos,
 };
@@ -16,15 +16,12 @@ pub struct TileBehaviourPlugin;
 impl Plugin for TileBehaviourPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
-            Update,
+            FixedUpdate,
             (
-                (
-                    handle_rubber,
-                    handle_void.after(handle_momentum).before(apply_momentum),
-                    handle_sand.after(apply_momentum),
-                )
-                    .run_if(can_apply_momentum()),
-                handle_goal.run_if(not(any_momentum_left())),
+                rubber,
+                void.after(transfer_momentum).before(apply_momentum),
+                sand.after(apply_momentum),
+                goal.run_if(not(any_momentum_left())),
             )
                 .run_if(in_state(GameState::Play)),
         );
@@ -40,7 +37,7 @@ pub struct Rubber;
 #[derive(Component)]
 pub struct Void;
 
-fn handle_sand(
+fn sand(
     sand_query: Query<&Pos, With<Sand>>,
     mut momentum_query: Query<(&Pos, &mut Momentum), (Without<Player>, Changed<Pos>)>,
 ) {
@@ -51,7 +48,7 @@ fn handle_sand(
     }
 }
 
-fn handle_rubber(
+fn rubber(
     rubber_query: Query<&Pos, With<Rubber>>,
     mut momentum_query: Query<(&Pos, &mut Momentum)>,
 ) {
@@ -67,7 +64,7 @@ fn handle_rubber(
     }
 }
 
-fn handle_void(
+fn void(
     mut cmds: Commands,
     void_query: Query<&Pos, With<Void>>,
     sokoban_query: Query<(Entity, &Pos), Without<Void>>,
@@ -79,7 +76,7 @@ fn handle_void(
     }
 }
 
-fn handle_goal(
+fn goal(
     balls: Query<&Pos, With<Ball>>,
     goals: Query<&Pos, With<Goal>>,
     mut current_level: ResMut<CurrentLevel>,

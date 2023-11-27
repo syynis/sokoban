@@ -72,12 +72,12 @@ impl Plugin for SokobanPlugin {
         .register_type::<SokobanBlock>()
         .register_type::<AssetsCollection>()
         .add_systems(Startup, setup)
+        .insert_resource(Time::<Fixed>::from_hz(8.))
         .add_systems(
             Update,
             (
                 // Play
-                handle_history
-                    .after(HandleHistoryEvents)
+                undo.after(HandleHistoryEvents)
                     .run_if(in_state(GameState::Play)),
                 escape,
             ),
@@ -153,7 +153,7 @@ fn setup(mut cmds: Commands) {
     ));
 }
 
-fn handle_history(
+fn undo(
     actions: Query<&ActionState<SokobanActions>>,
     mut history_events: EventWriter<HistoryEvent>,
     mut momentum_query: Query<&mut Momentum>,
@@ -263,16 +263,6 @@ impl From<Dir> for IVec2 {
 pub enum SokobanBlock {
     Static,
     Dynamic,
-}
-
-#[derive(Clone, Default, Debug, Component)]
-pub struct Pusher;
-
-#[derive(Debug, Clone)]
-pub struct PushEvent {
-    pub pusher: Entity,
-    pub direction: Dir,
-    pub pushed: Vec<Entity>,
 }
 
 #[derive(Bundle, Clone)]

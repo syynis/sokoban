@@ -5,7 +5,7 @@ use bevy::{log, prelude::*};
 use super::{
     collision::{CollisionMap, CollisionResult},
     history::HandleHistoryEvents,
-    player::{handle_player_actions, Player},
+    player::{player_movement, Player},
     Dir, GameState, Pos,
 };
 
@@ -17,16 +17,10 @@ impl Plugin for MomentumPlugin {
             .register_type::<Momentum>()
             .init_resource::<MomentumTimer>()
             .add_systems(
-                Update,
+                FixedUpdate,
                 (
-                    (
-                        handle_momentum.before(handle_player_actions),
-                        (apply_momentum, reset_momentum_timer)
-                            .chain()
-                            .after(HandleHistoryEvents),
-                    )
-                        .run_if(can_apply_momentum()),
-                    tick_momentum_timer.run_if(any_momentum_left()),
+                    transfer_momentum.before(player_movement),
+                    apply_momentum.after(HandleHistoryEvents),
                 )
                     .run_if(in_state(GameState::Play)),
             );
@@ -36,7 +30,7 @@ impl Plugin for MomentumPlugin {
 #[derive(Default, Component, Copy, Clone, Deref, DerefMut, Reflect)]
 pub struct Momentum(pub Option<Dir>);
 
-pub fn handle_momentum(
+pub fn transfer_momentum(
     mut momentum_query: Query<(Entity, &mut Pos, &mut Momentum)>,
     collision: Res<CollisionMap>,
 ) {
@@ -113,16 +107,4 @@ impl Default for MomentumTimer {
     fn default() -> Self {
         Self(Timer::new(Duration::from_millis(25), TimerMode::Once))
     }
-}
-
-fn tick_momentum_timer(mut movement_timer: ResMut<MomentumTimer>, time: Res<Time>) {
-    movement_timer.tick(time.delta());
-}
-
-pub fn reset_momentum_timer(mut movement_timer: ResMut<MomentumTimer>) {
-    movement_timer.reset();
-}
-
-pub fn can_apply_momentum() -> impl FnMut(Res<MomentumTimer>) -> bool + Clone {
-    move |timer: Res<MomentumTimer>| timer.finished()
 }

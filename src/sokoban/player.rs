@@ -5,7 +5,7 @@ use super::{
     collision::{CollisionMap, CollisionResult},
     history::{HandleHistoryEvents, History, HistoryEvent},
     momentum::{any_momentum_left, Momentum},
-    AssetsCollection, Dir, GameState, Pos, Pusher, SokobanBlock,
+    AssetsCollection, Dir, DynamicBundle, GameState, Pos,
 };
 
 pub struct PlayerPlugin;
@@ -16,7 +16,7 @@ impl Plugin for PlayerPlugin {
             .add_systems(Startup, setup)
             .add_systems(
                 Update,
-                handle_player_actions
+                player_movement
                     .before(HandleHistoryEvents)
                     .run_if(not(any_momentum_left()))
                     .run_if(in_state(GameState::Play)),
@@ -72,14 +72,13 @@ impl Command for SpawnPlayer {
                     Player,
                     self.pos,
                     History::<Pos>::default(),
-                    SokobanBlock::Dynamic,
-                    Pusher,
+                    DynamicBundle::default(),
                     SpriteBundle {
                         texture,
                         transform: Transform::from_translation(2. * Vec3::Z),
                         ..default()
                     },
-                    Momentum::default(),
+                    MovementTimer::default(),
                 ));
             });
     }
@@ -107,14 +106,24 @@ fn player_actions() -> InputMap<PlayerActions> {
     input_map
 }
 
-pub fn handle_player_actions(
-    player_q: Query<&Pos, With<Player>>,
+#[derive(Clone, Debug, Component, Deref, DerefMut)]
+pub struct MovementTimer(pub Timer);
+
+impl Default for MovementTimer {
+    fn default() -> MovementTimer {
+        MovementTimer(Timer::from_seconds(0.075, TimerMode::Once))
+    }
+}
+
+pub fn player_movement(
+    mut player_q: Query<(&Pos, &mut MovementTimer), With<Player>>,
     mut sokoban_entities: Query<&mut Momentum>,
     player_actions: Query<&ActionState<PlayerActions>>,
     mut history_events: EventWriter<HistoryEvent>,
     collision: Res<CollisionMap>,
+    time: Res<Time>,
 ) {
-    let Ok(player_pos) = player_q.get_single() else {
+    let Ok((player_pos, mut movement_timer)) = player_q.get_single_mut() else {
         return;
     };
 
@@ -122,11 +131,18 @@ pub fn handle_player_actions(
         .get_single()
         .expect("Player input map should exist");
 
+    movement_timer.tick(time.delta());
+
+    if !movement_timer.finished() {
+        return;
+    }
+
     for direction in player_actions
         .get_pressed()
         .iter()
         .map(|action| Dir::from(*action))
     {
+        movement_timer.reset();
         match collision.push_collision(IVec2::from(player_pos), direction) {
             CollisionResult::Push(push) => {
                 for e in push.iter() {
