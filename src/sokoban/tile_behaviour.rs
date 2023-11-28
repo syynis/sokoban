@@ -1,6 +1,7 @@
 use std::ops::AddAssign;
 
 use bevy::{ecs::system::Command, prelude::*};
+use bevy_ecs_tilemap::tiles::TileTextureIndex;
 
 use super::{
     ball::Ball,
@@ -19,9 +20,11 @@ impl Plugin for TileBehaviourPlugin {
             FixedUpdate,
             (
                 rubber,
+                lamp_interaction.before(transfer_momentum),
+                lamp_visual.after(lamp_interaction),
                 void.after(transfer_momentum).before(apply_momentum),
                 sand.after(apply_momentum),
-                goal.run_if(not(any_momentum_left())),
+                win.run_if(not(any_momentum_left()).and_then(goal.and_then(lamp()))),
             )
                 .run_if(in_state(GameState::Play)),
         );
@@ -36,6 +39,52 @@ pub struct Goal;
 pub struct Rubber;
 #[derive(Component)]
 pub struct Void;
+#[derive(Component)]
+pub struct Lamp(pub bool);
+
+fn lamp_interaction(
+    mut lamp_query: Query<(&Pos, &mut Lamp)>,
+    momentum_query: Query<(&Pos, &Momentum), Without<Player>>,
+) {
+    for (pos, momentum) in momentum_query.iter() {
+        if let Some(dir) = **momentum {
+            let mut dest = *pos;
+            dest.add_dir(dir);
+
+            for (lamp_pos, mut lamp) in lamp_query.iter_mut() {
+                if *lamp_pos == dest {
+                    lamp.0 = !lamp.0;
+                    break;
+                }
+            }
+        }
+    }
+}
+
+fn lamp_visual(mut lamp_query: Query<(&mut TileTextureIndex, &Lamp), Changed<Lamp>>) {
+    for (mut id, lamp_state) in lamp_query.iter_mut() {
+        if lamp_state.0 {
+            id.0 = 6;
+        } else {
+            id.0 = 5;
+        }
+    }
+}
+
+fn win(mut current_level: ResMut<CurrentLevel>, mut next_state: ResMut<NextState<GameState>>) {
+    current_level.add_assign(1);
+    next_state.set(GameState::LevelTransition);
+}
+
+fn lamp() -> impl FnMut(Query<&Lamp>) -> bool + Clone {
+    move |query: Query<&Lamp>| query.iter().all(|lamp| lamp.0)
+}
+
+fn goal(balls: Query<&Pos, With<Ball>>, goals: Query<&Pos, With<Goal>>) -> bool {
+    goals
+        .iter()
+        .all(|goal| balls.iter().any(|ball| ball == goal))
+}
 
 fn sand(
     sand_query: Query<&Pos, With<Sand>>,
@@ -73,21 +122,6 @@ fn void(
         if void_query.iter().any(|void_pos| void_pos == pos) {
             cmds.add(DespawnSokobanEntityCommand(entity));
         }
-    }
-}
-
-fn goal(
-    balls: Query<&Pos, With<Ball>>,
-    goals: Query<&Pos, With<Goal>>,
-    mut current_level: ResMut<CurrentLevel>,
-    mut next_state: ResMut<NextState<GameState>>,
-) {
-    let satisfied = goals
-        .iter()
-        .all(|goal| balls.iter().any(|ball| ball == goal));
-    if satisfied {
-        current_level.add_assign(1);
-        next_state.set(GameState::LevelTransition);
     }
 }
 

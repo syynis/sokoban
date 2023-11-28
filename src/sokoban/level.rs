@@ -14,7 +14,7 @@ use super::{
     collision::init_collision_map,
     level_select::CurrentLevel,
     player::SpawnPlayer,
-    tile_behaviour::{Rubber, Sand, SpawnGoal, Void},
+    tile_behaviour::{Lamp, Rubber, Sand, SpawnGoal, Void},
     AssetsCollection, GameState, Pos, SokobanBlock,
 };
 
@@ -147,6 +147,12 @@ fn spawn_level(
                 cmds.add(SpawnGoal::new(pos, level_root));
                 cmds.add(SpawnBall::new(pos, level_root))
             }
+            TileKind::LampOff => {
+                tile_cmds.insert((Name::new("Lamp"), SokobanBlock::Static, Lamp(false)));
+            }
+            TileKind::LampOn => {
+                tile_cmds.insert((Name::new("Lamp"), SokobanBlock::Static, Lamp(true)));
+            }
             TileKind::Floor => {}
         };
         storage.set(&position, tile_entity);
@@ -194,6 +200,8 @@ pub enum TileKind {
     Player,
     Goal,
     BallGoal,
+    LampOff,
+    LampOn,
 }
 
 impl From<u8> for TileKind {
@@ -209,6 +217,8 @@ impl From<u8> for TileKind {
             b'~' => Sand,
             b'g' => Goal,
             b'B' => BallGoal,
+            b'l' => LampOff,
+            b'L' => LampOn,
             _ => {
                 bevy::log::warn!("Couldnt parse tile kind defaulting to wall tile");
                 Wall
@@ -229,6 +239,8 @@ impl From<TileKind> for TileTextureIndex {
             TileKind::Player => 0,
             TileKind::Goal => 0,
             TileKind::BallGoal => 0,
+            TileKind::LampOff => 5,
+            TileKind::LampOn => 6,
         };
         Self(id)
     }
