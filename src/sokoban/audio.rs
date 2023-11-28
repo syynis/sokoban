@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{audio::VolumeLevel, prelude::*};
 use bevy_asset_loader::prelude::AssetCollection;
 
 use super::{GameState, SokobanEvent};
@@ -7,10 +7,12 @@ pub struct GameAudioPlugin;
 
 impl Plugin for GameAudioPlugin {
     fn build(&self, app: &mut App) {
-        app.register_type::<AudioCollection>()
-            .add_systems(Update, handle_audio
-                .run_if(in_state(GameState::Play)).run_if(on_event::<SokobanEvent>())
-            );
+        app.register_type::<AudioCollection>().add_systems(
+            Update,
+            handle_audio
+                .run_if(in_state(GameState::Play))
+                .run_if(on_event::<SokobanEvent>()),
+        );
     }
 }
 
@@ -34,15 +36,20 @@ fn handle_audio(
     mut sokoban_events: EventReader<SokobanEvent>,
     audio: Res<AudioCollection>,
 ) {
+    let settings = PlaybackSettings {
+        mode: bevy::audio::PlaybackMode::Despawn,
+        volume: bevy::audio::Volume::Absolute(VolumeLevel::new(0.2)),
+        ..default()
+    };
     for ev in sokoban_events.read() {
         match ev {
             SokobanEvent::PlayerMoved => cmds.spawn(AudioBundle {
                 source: audio.walk.clone(),
-                settings: PlaybackSettings::DESPAWN,
+                settings,
             }),
             SokobanEvent::PlayerPush => cmds.spawn(AudioBundle {
                 source: audio.push_player.clone(),
-                settings: PlaybackSettings::DESPAWN,
+                settings,
             }),
             SokobanEvent::BallPush => todo!(),
             SokobanEvent::BallHitWall => todo!(),
