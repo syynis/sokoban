@@ -1,10 +1,11 @@
 use bevy::prelude::*;
+use bevy_nine_slice_ui::NineSliceTexture;
 use leafwing_input_manager::prelude::ActionState;
 
 use super::{
     cleanup::DependOnState,
     level::{LevelCollection, Levels},
-    GameState, SokobanActions,
+    AssetsCollection, GameState, SokobanActions,
 };
 
 pub struct LevelSelectPlugin;
@@ -101,11 +102,22 @@ fn render_selected_border(
 
 fn spawn_level_select(
     mut cmds: Commands,
-    assets: Res<LevelCollection>,
+    level_assets: Res<LevelCollection>,
     levels: Res<Assets<Levels>>,
+    assets: Res<AssetsCollection>,
 ) {
+    let button_texture = assets.button.clone_weak();
+    let button_style = Style {
+        width: Val::Px(75.0),
+        height: Val::Px(75.0),
+        margin: UiRect::all(Val::Px(10.)),
+        justify_content: JustifyContent::Center,
+        align_items: AlignItems::Center,
+        border: UiRect::all(Val::Px(2.)),
+        ..default()
+    };
     let amount_levels = levels
-        .get(&assets.levels)
+        .get(&level_assets.levels)
         .expect("Level assets should be loaded")
         .len();
     let cols = 5;
@@ -120,20 +132,15 @@ fn spawn_level_select(
                 continue;
             }
             let id = cmds
-                .spawn((ButtonBundle {
-                    style: Style {
-                        width: Val::Px(75.0),
-                        height: Val::Px(75.0),
-                        margin: UiRect::all(Val::Px(10.)),
-                        justify_content: JustifyContent::Center,
-                        align_items: AlignItems::Center,
-                        border: UiRect::all(Val::Px(2.)),
+                .spawn((
+                    NodeBundle {
+                        style: button_style.clone(),
+                        focus_policy: bevy::ui::FocusPolicy::Block,
                         ..default()
                     },
-                    background_color: BackgroundColor(Color::DARK_GRAY),
-                    focus_policy: bevy::ui::FocusPolicy::Block,
-                    ..default()
-                },))
+                    Interaction::default(),
+                    NineSliceTexture::new(button_texture.clone_weak()),
+                ))
                 .with_children(|parent| {
                     parent.spawn(TextBundle::from_section(
                         format!("{}", idx + 1),

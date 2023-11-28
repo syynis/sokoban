@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use bevy_asset_loader::prelude::{AssetCollection, LoadingState, LoadingStateAppExt};
 use bevy_ecs_tilemap::{prelude::TilemapGridSize, tiles::TilePos, TilemapPlugin};
+use bevy_nine_slice_ui::NineSlicePlugin;
 use bevy_pile::tilemap::tile_to_world_pos;
 use leafwing_input_manager::prelude::*;
 
@@ -37,6 +38,7 @@ pub mod momentum;
 pub mod pause_menu;
 pub mod player;
 pub mod tile_behaviour;
+pub mod ui;
 
 pub struct SokobanPlugin;
 
@@ -57,7 +59,7 @@ impl Plugin for SokobanPlugin {
             TileBehaviourPlugin,
             CommandHistoryPlugin,
             TilemapPlugin,
-            GameAudioPlugin,
+            (GameAudioPlugin, NineSlicePlugin::default()),
         ))
         .add_state::<GameState>()
         .add_loading_state(
@@ -113,6 +115,8 @@ pub struct AssetsCollection {
     pub ball: Handle<Image>,
     #[asset(path = "goal.png")]
     pub goal: Handle<Image>,
+    #[asset(path = "button.png")]
+    pub button: Handle<Image>,
 }
 
 #[derive(Actionlike, Clone, Copy, Hash, Debug, PartialEq, Eq, Reflect)]

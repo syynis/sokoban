@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 leafwing-input-manager = "0.11.1"
+bevy_nine_slice_ui = "0.2"
 bevy_tweening = "0.9"
 serde = "1.0"
 anyhow = "1.0"

@@ -1,6 +1,7 @@
 use bevy::prelude::*;
+use bevy_nine_slice_ui::NineSliceTexture;
 
-use super::{cleanup::DependOnState, GameState};
+use super::{cleanup::DependOnState, AssetsCollection, GameState};
 
 pub struct MainMenuPlugin;
 
@@ -34,7 +35,21 @@ fn handle_buttons(
     });
 }
 
-fn spawn_main_menu(mut cmds: Commands) {
+fn spawn_main_menu(mut cmds: Commands, assets: Res<AssetsCollection>) {
+    let button_texture = assets.button.clone_weak();
+    let button_style = Style {
+        width: Val::Px(150.0),
+        height: Val::Px(65.0),
+        margin: UiRect {
+            top: Val::Px(10.),
+            bottom: Val::Px(10.),
+            ..default()
+        },
+        justify_content: JustifyContent::Center,
+        align_items: AlignItems::Center,
+        border: UiRect::all(Val::Px(2.)),
+        ..default()
+    };
     cmds.spawn((
         NodeBundle {
             style: Style {
@@ -54,25 +69,14 @@ fn spawn_main_menu(mut cmds: Commands) {
     .with_children(|parent| {
         parent
             .spawn((
-                ButtonBundle {
-                    style: Style {
-                        width: Val::Px(150.0),
-                        height: Val::Px(65.0),
-                        margin: UiRect {
-                            top: Val::Px(10.),
-                            bottom: Val::Px(10.),
-                            ..default()
-                        },
-                        justify_content: JustifyContent::Center,
-                        align_items: AlignItems::Center,
-                        border: UiRect::all(Val::Px(2.)),
-                        ..default()
-                    },
-                    background_color: BackgroundColor(Color::BLACK),
+                NodeBundle {
+                    style: button_style.clone(),
                     focus_policy: bevy::ui::FocusPolicy::Block,
                     ..default()
                 },
+                Interaction::default(),
                 MainMenuButton::Play,
+                NineSliceTexture::new(button_texture.clone_weak()),
             ))
             .with_children(|parent| {
                 parent.spawn(TextBundle::from_section(
@@ -88,25 +92,14 @@ fn spawn_main_menu(mut cmds: Commands) {
         #[cfg(not(target_family = "wasm"))]
         parent
             .spawn((
-                ButtonBundle {
-                    style: Style {
-                        width: Val::Px(150.0),
-                        height: Val::Px(65.0),
-                        margin: UiRect {
-                            top: Val::Px(10.),
-                            bottom: Val::Px(10.),
-                            ..default()
-                        },
-                        justify_content: JustifyContent::Center,
-                        align_items: AlignItems::Center,
-                        border: UiRect::all(Val::Px(2.)),
-                        ..default()
-                    },
-                    background_color: BackgroundColor(Color::BLACK),
+                NodeBundle {
+                    style: button_style.clone(),
                     focus_policy: bevy::ui::FocusPolicy::Block,
                     ..default()
                 },
+                Interaction::default(),
                 MainMenuButton::Exit,
+                NineSliceTexture::new(button_texture.clone_weak()),
             ))
             .with_children(|parent| {
                 parent.spawn(TextBundle::from_section(

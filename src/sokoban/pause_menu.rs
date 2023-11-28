@@ -1,9 +1,12 @@
 use std::ops::AddAssign;
 
 use bevy::prelude::*;
+use bevy_nine_slice_ui::NineSliceTexture;
 use leafwing_input_manager::prelude::ActionState;
 
-use super::{cleanup::DependOnState, level_select::CurrentLevel, GameState, SokobanActions};
+use super::{
+    cleanup::DependOnState, level_select::CurrentLevel, AssetsCollection, GameState, SokobanActions,
+};
 
 pub struct PauseMenuPlugin;
 
@@ -68,7 +71,8 @@ impl PauseMenuButton {
     }
 }
 
-fn setup(mut cmds: Commands) {
+fn setup(mut cmds: Commands, assets: Res<AssetsCollection>) {
+    let button_texture = assets.button.clone_weak();
     cmds.spawn((
         NodeBundle {
             style: Style {
@@ -89,7 +93,7 @@ fn setup(mut cmds: Commands) {
         for button in ALL_BUTTONS.iter() {
             parent
                 .spawn((
-                    ButtonBundle {
+                    NodeBundle {
                         style: Style {
                             width: Val::Px(150.0),
                             height: Val::Px(65.0),
@@ -103,10 +107,11 @@ fn setup(mut cmds: Commands) {
                             border: UiRect::all(Val::Px(2.)),
                             ..default()
                         },
-                        background_color: BackgroundColor(Color::BLACK),
                         focus_policy: bevy::ui::FocusPolicy::Block,
                         ..default()
                     },
+                    Interaction::default(),
+                    NineSliceTexture::new(button_texture.clone_weak()),
                     *button,
                 ))
                 .with_children(|parent| {
