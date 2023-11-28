@@ -1,6 +1,6 @@
 use std::ops::AddAssign;
 
-use bevy::{ecs::system::Command, prelude::*};
+use bevy::prelude::*;
 use leafwing_input_manager::prelude::ActionState;
 
 use super::{cleanup::DependOnState, level_select::CurrentLevel, GameState, SokobanActions};
@@ -69,7 +69,58 @@ impl PauseMenuButton {
 }
 
 fn setup(mut cmds: Commands) {
-    cmds.add(SpawnPauseMenuButtons);
+    cmds.spawn((
+        NodeBundle {
+            style: Style {
+                width: Val::Percent(100.),
+                height: Val::Percent(100.),
+                align_items: AlignItems::Center,
+                align_content: AlignContent::Center,
+                margin: UiRect::all(Val::Auto),
+                justify_content: JustifyContent::Center,
+                flex_direction: FlexDirection::Column,
+                ..default()
+            },
+            ..default()
+        },
+        DependOnState::single(GameState::Pause),
+    ))
+    .with_children(|parent| {
+        for button in ALL_BUTTONS.iter() {
+            parent
+                .spawn((
+                    ButtonBundle {
+                        style: Style {
+                            width: Val::Px(150.0),
+                            height: Val::Px(65.0),
+                            margin: UiRect {
+                                top: Val::Px(10.),
+                                bottom: Val::Px(10.),
+                                ..default()
+                            },
+                            justify_content: JustifyContent::Center,
+                            align_items: AlignItems::Center,
+                            border: UiRect::all(Val::Px(2.)),
+                            ..default()
+                        },
+                        background_color: BackgroundColor(Color::BLACK),
+                        focus_policy: bevy::ui::FocusPolicy::Block,
+                        ..default()
+                    },
+                    *button,
+                ))
+                .with_children(|parent| {
+                    parent.spawn(TextBundle::from_section(
+                        button.name(),
+                        TextStyle {
+                            font_size: 20.,
+                            color: Color::WHITE,
+                            ..default()
+                        },
+                    ));
+                });
+        }
+    });
 }
 
 #[derive(Event, Deref, DerefMut)]
@@ -138,65 +189,5 @@ fn render_selected_border(
         } else {
             *border_color = BorderColor(Color::NONE);
         }
-    }
-}
-
-pub struct SpawnPauseMenuButtons;
-
-impl Command for SpawnPauseMenuButtons {
-    fn apply(self, world: &mut World) {
-        world
-            .spawn((
-                NodeBundle {
-                    style: Style {
-                        width: Val::Percent(100.),
-                        height: Val::Percent(100.),
-                        align_items: AlignItems::Center,
-                        align_content: AlignContent::Center,
-                        margin: UiRect::all(Val::Auto),
-                        justify_content: JustifyContent::Center,
-                        flex_direction: FlexDirection::Column,
-                        ..default()
-                    },
-                    ..default()
-                },
-                DependOnState::single(GameState::Pause),
-            ))
-            .with_children(|parent| {
-                for button in ALL_BUTTONS.iter() {
-                    parent
-                        .spawn((
-                            ButtonBundle {
-                                style: Style {
-                                    width: Val::Px(150.0),
-                                    height: Val::Px(65.0),
-                                    margin: UiRect {
-                                        top: Val::Px(10.),
-                                        bottom: Val::Px(10.),
-                                        ..default()
-                                    },
-                                    justify_content: JustifyContent::Center,
-                                    align_items: AlignItems::Center,
-                                    border: UiRect::all(Val::Px(2.)),
-                                    ..default()
-                                },
-                                background_color: BackgroundColor(Color::BLACK),
-                                focus_policy: bevy::ui::FocusPolicy::Block,
-                                ..default()
-                            },
-                            *button,
-                        ))
-                        .with_children(|parent| {
-                            parent.spawn(TextBundle::from_section(
-                                button.name(),
-                                TextStyle {
-                                    font_size: 20.,
-                                    color: Color::WHITE,
-                                    ..default()
-                                },
-                            ));
-                        });
-                }
-            });
     }
 }

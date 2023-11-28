@@ -1,4 +1,4 @@
-use bevy::{ecs::system::Command, prelude::*};
+use bevy::prelude::*;
 use leafwing_input_manager::prelude::ActionState;
 
 use super::{
@@ -99,90 +99,83 @@ fn render_selected_border(
     }
 }
 
-fn spawn_level_select(mut cmds: Commands) {
-    cmds.add(SpawnLevelSelectButtons);
-}
+fn spawn_level_select(
+    mut cmds: Commands,
+    assets: Res<LevelCollection>,
+    levels: Res<Assets<Levels>>,
+) {
+    let amount_levels = levels
+        .get(&assets.levels)
+        .expect("Level assets should be loaded")
+        .len();
+    let cols = 5;
+    let rows = (amount_levels / cols) + 1;
 
-pub struct SpawnLevelSelectButtons;
-
-impl Command for SpawnLevelSelectButtons {
-    fn apply(self, world: &mut World) {
-        let assets = world.resource::<LevelCollection>();
-        let amount_levels = world
-            .resource::<Assets<Levels>>()
-            .get(&assets.levels)
-            .expect("Level assets should be loaded")
-            .len();
-        let cols = 5;
-        let rows = (amount_levels / cols) + 1;
-
-        let mut children = Vec::new();
-        for r in 0..rows {
-            let mut buttons = Vec::new();
-            for c in 0..cols {
-                let idx = c + r * cols;
-                if idx >= amount_levels {
-                    continue;
-                }
-                let id = world
-                    .spawn((ButtonBundle {
-                        style: Style {
-                            width: Val::Px(75.0),
-                            height: Val::Px(75.0),
-                            margin: UiRect::all(Val::Px(10.)),
-                            justify_content: JustifyContent::Center,
-                            align_items: AlignItems::Center,
-                            border: UiRect::all(Val::Px(2.)),
+    let mut children = Vec::new();
+    for r in 0..rows {
+        let mut buttons = Vec::new();
+        for c in 0..cols {
+            let idx = c + r * cols;
+            if idx >= amount_levels {
+                continue;
+            }
+            let id = cmds
+                .spawn((ButtonBundle {
+                    style: Style {
+                        width: Val::Px(75.0),
+                        height: Val::Px(75.0),
+                        margin: UiRect::all(Val::Px(10.)),
+                        justify_content: JustifyContent::Center,
+                        align_items: AlignItems::Center,
+                        border: UiRect::all(Val::Px(2.)),
+                        ..default()
+                    },
+                    background_color: BackgroundColor(Color::DARK_GRAY),
+                    focus_policy: bevy::ui::FocusPolicy::Block,
+                    ..default()
+                },))
+                .with_children(|parent| {
+                    parent.spawn(TextBundle::from_section(
+                        format!("{}", idx + 1),
+                        TextStyle {
+                            font_size: 20.,
+                            color: Color::WHITE,
                             ..default()
                         },
-                        background_color: BackgroundColor(Color::DARK_GRAY),
-                        focus_policy: bevy::ui::FocusPolicy::Block,
-                        ..default()
-                    },))
-                    .with_children(|parent| {
-                        parent.spawn(TextBundle::from_section(
-                            format!("{}", idx + 1),
-                            TextStyle {
-                                font_size: 20.,
-                                color: Color::WHITE,
-                                ..default()
-                            },
-                        ));
-                    })
-                    .id();
-
-                world.entity_mut(id).insert(LevelButton(idx));
-                buttons.push(id);
-            }
-            let row_node = world
-                .spawn(NodeBundle {
-                    style: Style {
-                        flex_direction: FlexDirection::Row,
-                        align_items: AlignItems::Center,
-                        align_content: AlignContent::Center,
-                        margin: UiRect::all(Val::Auto),
-                        ..default()
-                    },
-                    ..default()
+                    ));
                 })
-                .push_children(&buttons)
                 .id();
-            children.push(row_node);
+
+            cmds.entity(id).insert(LevelButton(idx));
+            buttons.push(id);
         }
-        world
-            .spawn((
-                NodeBundle {
-                    style: Style {
-                        flex_direction: FlexDirection::Column,
-                        align_items: AlignItems::Center,
-                        align_content: AlignContent::Center,
-                        margin: UiRect::all(Val::Auto),
-                        ..default()
-                    },
+        let row_node = cmds
+            .spawn(NodeBundle {
+                style: Style {
+                    flex_direction: FlexDirection::Row,
+                    align_items: AlignItems::Center,
+                    align_content: AlignContent::Center,
+                    margin: UiRect::all(Val::Auto),
                     ..default()
                 },
-                DependOnState::single(GameState::LevelSelect),
-            ))
-            .push_children(&children);
+                ..default()
+            })
+            .push_children(&buttons)
+            .id();
+        children.push(row_node);
     }
+    cmds.spawn((
+        NodeBundle {
+            style: Style {
+                flex_direction: FlexDirection::Column,
+                align_items: AlignItems::Center,
+                align_content: AlignContent::Center,
+                margin: UiRect::all(Val::Auto),
+                ..default()
+            },
+            ..default()
+        },
+        DependOnState::single(GameState::LevelSelect),
+    ))
+    .push_children(&children);
 }
