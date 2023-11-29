@@ -1,4 +1,4 @@
-use bevy::{audio::VolumeLevel, prelude::*};
+use bevy::{audio::*, prelude::*};
 use bevy_asset_loader::prelude::AssetCollection;
 
 use super::{GameState, SokobanEvent};
@@ -7,12 +7,42 @@ pub struct GameAudioPlugin;
 
 impl Plugin for GameAudioPlugin {
     fn build(&self, app: &mut App) {
-        app.register_type::<AudioCollection>().add_systems(
-            Update,
-            handle_audio
-                .run_if(in_state(GameState::Play))
-                .run_if(on_event::<SokobanEvent>()),
-        );
+        app.register_type::<AudioCollection>()
+            .register_type::<VolumeSettings>()
+            .init_resource::<VolumeSettings>()
+            .add_systems(
+                Update,
+                handle_audio
+                    .run_if(in_state(GameState::Play))
+                    .run_if(on_event::<SokobanEvent>()),
+            );
+    }
+}
+
+#[derive(Resource, Reflect)]
+#[reflect(Resource)]
+pub struct VolumeSettings {
+    pub sfx_vol: f32,
+    pub music_vol: f32,
+    increment: f32,
+}
+
+impl Default for VolumeSettings {
+    fn default() -> Self {
+        Self {
+            music_vol: 0.4,
+            sfx_vol: 0.4,
+            increment: 0.2,
+        }
+    }
+}
+
+impl VolumeSettings {
+    pub fn change_sfx_vol(&mut self) {
+        self.sfx_vol = (self.sfx_vol + self.increment).clamp(0., 1.);
+    }
+    pub fn change_music_vol(&mut self) {
+        self.music_vol = (self.music_vol + self.increment).clamp(0., 1.);
     }
 }
 
@@ -35,10 +65,11 @@ fn handle_audio(
     mut cmds: Commands,
     mut sokoban_events: EventReader<SokobanEvent>,
     audio: Res<AudioCollection>,
+    volume_settings: Res<VolumeSettings>,
 ) {
     let settings = PlaybackSettings {
-        mode: bevy::audio::PlaybackMode::Despawn,
-        volume: bevy::audio::Volume::Absolute(VolumeLevel::new(0.2)),
+        mode: PlaybackMode::Despawn,
+        volume: Volume::Absolute(VolumeLevel::new(volume_settings.sfx_vol)),
         ..default()
     };
     for ev in sokoban_events.read() {
