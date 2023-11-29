@@ -1,11 +1,11 @@
 use std::ops::AddAssign;
 
 use bevy::prelude::*;
-use bevy_nine_slice_ui::NineSliceTexture;
 use leafwing_input_manager::prelude::ActionState;
 
 use super::{
-    cleanup::DependOnState, level_select::CurrentLevel, AssetsCollection, GameState, SokobanActions,
+    cleanup::DependOnState, level_select::CurrentLevel, ui::NineSliceButtonText, AssetsCollection,
+    GameState, SokobanActions,
 };
 
 pub struct PauseMenuPlugin;
@@ -58,74 +58,61 @@ impl From<PauseMenuButton> for GameState {
     }
 }
 
-impl PauseMenuButton {
-    pub fn name(&self) -> String {
-        match self {
+impl From<PauseMenuButton> for String {
+    fn from(value: PauseMenuButton) -> Self {
+        match value {
             PauseMenuButton::Resume => "Resume",
             PauseMenuButton::NextLevel => "Next Level",
             PauseMenuButton::PrevLevel => "Previous Level",
             PauseMenuButton::ReturnToLevelSelect => "Level Select",
             PauseMenuButton::ReturnToMain => "Main Menu",
         }
-        .to_owned()
+        .to_string()
     }
 }
 
 fn setup(mut cmds: Commands, assets: Res<AssetsCollection>) {
     let button_texture = assets.button.clone_weak();
-    cmds.spawn((
-        NodeBundle {
-            style: Style {
-                width: Val::Percent(100.),
-                height: Val::Percent(100.),
-                align_items: AlignItems::Center,
-                align_content: AlignContent::Center,
-                margin: UiRect::all(Val::Auto),
-                justify_content: JustifyContent::Center,
-                flex_direction: FlexDirection::Column,
-                ..default()
-            },
+    let button_style = Style {
+        width: Val::Px(150.0),
+        height: Val::Px(65.0),
+        margin: UiRect {
+            top: Val::Px(10.),
+            bottom: Val::Px(10.),
             ..default()
         },
-        DependOnState::single(GameState::Pause),
-    ))
-    .with_children(|parent| {
-        for button in ALL_BUTTONS.iter() {
-            parent
-                .spawn((
-                    NodeBundle {
-                        style: Style {
-                            width: Val::Px(150.0),
-                            height: Val::Px(65.0),
-                            margin: UiRect {
-                                top: Val::Px(10.),
-                                bottom: Val::Px(10.),
-                                ..default()
-                            },
-                            justify_content: JustifyContent::Center,
-                            align_items: AlignItems::Center,
-                            border: UiRect::all(Val::Px(2.)),
-                            ..default()
-                        },
-                        focus_policy: bevy::ui::FocusPolicy::Block,
-                        ..default()
-                    },
-                    Interaction::default(),
-                    NineSliceTexture::new(button_texture.clone_weak()),
-                    *button,
-                ))
-                .with_children(|parent| {
-                    parent.spawn(TextBundle::from_section(
-                        button.name(),
-                        TextStyle {
-                            font_size: 20.,
-                            color: Color::WHITE,
-                            ..default()
-                        },
-                    ));
-                });
-        }
-    });
+        justify_content: JustifyContent::Center,
+        align_items: AlignItems::Center,
+        border: UiRect::all(Val::Px(2.)),
+        ..default()
+    };
+
+    let parent = cmds
+        .spawn((
+            NodeBundle {
+                style: Style {
+                    width: Val::Percent(100.),
+                    height: Val::Percent(100.),
+                    align_items: AlignItems::Center,
+                    align_content: AlignContent::Center,
+                    margin: UiRect::all(Val::Auto),
+                    justify_content: JustifyContent::Center,
+                    flex_direction: FlexDirection::Column,
+                    ..default()
+                },
+                ..default()
+            },
+            DependOnState::single(GameState::Pause),
+        ))
+        .id();
+    for button in ALL_BUTTONS.iter() {
+        cmds.add(NineSliceButtonText {
+            button: *button,
+            style: button_style.clone(),
+            texture: button_texture.clone_weak(),
+            parent,
+        });
+    }
 }
 
 #[derive(Event, Deref, DerefMut)]

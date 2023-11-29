@@ -1,7 +1,6 @@
 use bevy::prelude::*;
-use bevy_nine_slice_ui::NineSliceTexture;
 
-use super::{cleanup::DependOnState, AssetsCollection, GameState};
+use super::{cleanup::DependOnState, ui::NineSliceButtonText, AssetsCollection, GameState};
 
 pub struct MainMenuPlugin;
 
@@ -15,11 +14,21 @@ impl Plugin for MainMenuPlugin {
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Clone)]
 enum MainMenuButton {
     Play,
     #[cfg(not(target_family = "wasm"))]
     Exit,
+}
+
+impl From<MainMenuButton> for String {
+    fn from(value: MainMenuButton) -> Self {
+        match value {
+            MainMenuButton::Play => "Play",
+            MainMenuButton::Exit => "Exit",
+        }
+        .to_string()
+    }
 }
 
 fn handle_buttons(
@@ -50,66 +59,35 @@ fn spawn_main_menu(mut cmds: Commands, assets: Res<AssetsCollection>) {
         border: UiRect::all(Val::Px(2.)),
         ..default()
     };
-    cmds.spawn((
-        NodeBundle {
-            style: Style {
-                width: Val::Percent(100.),
-                height: Val::Percent(100.),
-                align_items: AlignItems::Center,
-                align_content: AlignContent::Center,
-                margin: UiRect::all(Val::Auto),
-                justify_content: JustifyContent::Center,
-                flex_direction: FlexDirection::Column,
+    let parent = cmds
+        .spawn((
+            NodeBundle {
+                style: Style {
+                    width: Val::Percent(100.),
+                    height: Val::Percent(100.),
+                    align_items: AlignItems::Center,
+                    align_content: AlignContent::Center,
+                    margin: UiRect::all(Val::Auto),
+                    justify_content: JustifyContent::Center,
+                    flex_direction: FlexDirection::Column,
+                    ..default()
+                },
                 ..default()
             },
-            ..default()
-        },
-        DependOnState::single(GameState::MainMenu),
-    ))
-    .with_children(|parent| {
-        parent
-            .spawn((
-                NodeBundle {
-                    style: button_style.clone(),
-                    focus_policy: bevy::ui::FocusPolicy::Block,
-                    ..default()
-                },
-                Interaction::default(),
-                MainMenuButton::Play,
-                NineSliceTexture::new(button_texture.clone_weak()),
-            ))
-            .with_children(|parent| {
-                parent.spawn(TextBundle::from_section(
-                    "Play",
-                    TextStyle {
-                        font_size: 20.,
-                        color: Color::WHITE,
-                        ..default()
-                    },
-                ));
-            });
-
-        #[cfg(not(target_family = "wasm"))]
-        parent
-            .spawn((
-                NodeBundle {
-                    style: button_style.clone(),
-                    focus_policy: bevy::ui::FocusPolicy::Block,
-                    ..default()
-                },
-                Interaction::default(),
-                MainMenuButton::Exit,
-                NineSliceTexture::new(button_texture.clone_weak()),
-            ))
-            .with_children(|parent| {
-                parent.spawn(TextBundle::from_section(
-                    "Exit",
-                    TextStyle {
-                        font_size: 20.,
-                        color: Color::WHITE,
-                        ..default()
-                    },
-                ));
-            });
+            DependOnState::single(GameState::MainMenu),
+        ))
+        .id();
+    cmds.add(NineSliceButtonText {
+        button: MainMenuButton::Play,
+        style: button_style.clone(),
+        texture: button_texture.clone_weak(),
+        parent,
+    });
+    #[cfg(not(target_family = "wasm"))]
+    cmds.add(NineSliceButtonText {
+        button: MainMenuButton::Exit,
+        style: button_style.clone(),
+        texture: button_texture.clone_weak(),
+        parent,
     });
 }

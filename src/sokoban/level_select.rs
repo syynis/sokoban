@@ -1,10 +1,10 @@
 use bevy::prelude::*;
-use bevy_nine_slice_ui::NineSliceTexture;
 use leafwing_input_manager::prelude::ActionState;
 
 use super::{
     cleanup::DependOnState,
     level::{LevelCollection, Levels},
+    ui::NineSliceButtonText,
     AssetsCollection, GameState, SokobanActions,
 };
 
@@ -30,8 +30,14 @@ impl Plugin for LevelSelectPlugin {
 #[reflect(Resource)]
 pub struct CurrentLevel(pub usize);
 
-#[derive(Component, Deref, DerefMut)]
+#[derive(Component, Deref, DerefMut, Clone)]
 struct LevelButton(pub usize);
+
+impl From<LevelButton> for String {
+    fn from(value: LevelButton) -> Self {
+        format!("{}", *value + 1)
+    }
+}
 
 fn handle_buttons(
     mut game_state: ResMut<NextState<GameState>>,
@@ -123,39 +129,8 @@ fn spawn_level_select(
     let cols = 5;
     let rows = (amount_levels / cols) + 1;
 
-    let mut children = Vec::new();
+    let mut row_nodes = Vec::new();
     for r in 0..rows {
-        let mut buttons = Vec::new();
-        for c in 0..cols {
-            let idx = c + r * cols;
-            if idx >= amount_levels {
-                continue;
-            }
-            let id = cmds
-                .spawn((
-                    NodeBundle {
-                        style: button_style.clone(),
-                        focus_policy: bevy::ui::FocusPolicy::Block,
-                        ..default()
-                    },
-                    Interaction::default(),
-                    NineSliceTexture::new(button_texture.clone_weak()),
-                ))
-                .with_children(|parent| {
-                    parent.spawn(TextBundle::from_section(
-                        format!("{}", idx + 1),
-                        TextStyle {
-                            font_size: 20.,
-                            color: Color::WHITE,
-                            ..default()
-                        },
-                    ));
-                })
-                .id();
-
-            cmds.entity(id).insert(LevelButton(idx));
-            buttons.push(id);
-        }
         let row_node = cmds
             .spawn(NodeBundle {
                 style: Style {
@@ -167,9 +142,20 @@ fn spawn_level_select(
                 },
                 ..default()
             })
-            .push_children(&buttons)
             .id();
-        children.push(row_node);
+        for c in 0..cols {
+            let idx = c + r * cols;
+            if idx >= amount_levels {
+                break;
+            }
+            cmds.add(NineSliceButtonText {
+                button: LevelButton(idx),
+                style: button_style.clone(),
+                texture: button_texture.clone_weak(),
+                parent: row_node,
+            });
+        }
+        row_nodes.push(row_node);
     }
     cmds.spawn((
         NodeBundle {
@@ -184,5 +170,5 @@ fn spawn_level_select(
         },
         DependOnState::single(GameState::LevelSelect),
     ))
-    .push_children(&children);
+    .push_children(&row_nodes);
 }
