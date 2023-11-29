@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy_nine_slice_ui::NineSliceTexture;
 
 use super::{cleanup::DependOnState, ui::NineSliceButtonText, AssetsCollection, GameState};
 
@@ -75,6 +76,7 @@ fn spawn_main_menu(mut cmds: Commands, assets: Res<AssetsCollection>) {
                 ..default()
             },
             DependOnState::single(GameState::MainMenu),
+            NineSliceTexture::new(button_texture.clone()),
         ))
         .id();
     cmds.add(NineSliceButtonText {

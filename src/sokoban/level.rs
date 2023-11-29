@@ -5,6 +5,7 @@ use bevy::{
 };
 use bevy_asset_loader::prelude::AssetCollection;
 use bevy_ecs_tilemap::prelude::*;
+use bevy_pile::grid::Grid;
 use serde::Deserialize;
 use thiserror::Error;
 
@@ -15,6 +16,7 @@ use super::{
     level_select::CurrentLevel,
     player::SpawnPlayer,
     tile_behaviour::{Lamp, Rubber, Sand, SpawnGoal, Void},
+    util::CARDINALS,
     AssetsCollection, GameState, Pos, SokobanBlock,
 };
 
@@ -78,7 +80,6 @@ fn spawn_level(
     level_collection: Res<LevelCollection>,
 ) {
     let levels_handle = &level_collection.levels;
-    let tiles_handle = &asset_collection.tiles;
 
     let levels = levels_assets
         .get(levels_handle)
@@ -89,6 +90,7 @@ fn spawn_level(
 
     let size = TilemapSize::from(level.size);
     let mut storage = TileStorage::empty(size);
+    let mut wall_storage = TileStorage::empty(size);
     let level_root = cmds
         .spawn((
             SpatialBundle::default(),
@@ -98,6 +100,7 @@ fn spawn_level(
         ))
         .id();
     let tilemap_entity = cmds.spawn_empty().id();
+    let wall_tilemap_entity = cmds.spawn_empty().id();
     let tile_size = TilemapTileSize::from(Vec2::splat(8.));
     let grid_size = tile_size.into();
     let map_type = TilemapType::Square;
@@ -105,16 +108,29 @@ fn spawn_level(
     for (idx, tile) in level.tiles.iter().enumerate() {
         let position = TilePos {
             x: idx as u32 % level.size.x,
-            y: level.size.y - (idx as u32 / level.size.x) - 1,
+            y: idx as u32 / level.size.x,
         };
 
+        let texture_index = if matches!(tile, TileKind::Wall) {
+            TileTextureIndex(calculate_wall_index(
+                UVec2::from(position).as_ivec2(),
+                level,
+            ))
+        } else {
+            TileTextureIndex::from(*tile)
+        };
+        let tilemap_id = if matches!(tile, TileKind::Wall) {
+            TilemapId(wall_tilemap_entity)
+        } else {
+            TilemapId(tilemap_entity)
+        };
         let tile_entity = cmds
             .spawn((
                 Name::new("Tile"),
                 TileBundle {
                     position,
-                    texture_index: TileTextureIndex::from(*tile),
-                    tilemap_id: TilemapId(tilemap_entity),
+                    texture_index,
+                    tilemap_id,
                     ..default()
                 },
             ))
@@ -155,8 +171,13 @@ fn spawn_level(
             }
             TileKind::Floor => {}
         };
-        storage.set(&position, tile_entity);
-        cmds.entity(tilemap_entity).add_child(tile_entity);
+        if matches!(tile, TileKind::Wall) {
+            cmds.entity(wall_tilemap_entity).add_child(tile_entity);
+            wall_storage.set(&position, tile_entity);
+        } else {
+            cmds.entity(tilemap_entity).add_child(tile_entity);
+            storage.set(&position, tile_entity);
+        }
     }
     cmds.entity(tilemap_entity).insert((
         TilemapBundle {
@@ -164,13 +185,99 @@ fn spawn_level(
             map_type,
             size,
             storage,
-            texture: TilemapTexture::Single(tiles_handle.clone()),
+            texture: TilemapTexture::Single(asset_collection.tiles.clone()),
             tile_size,
             ..default()
         },
         Name::new(format!("Level {}", **current_level)),
     ));
+    cmds.entity(wall_tilemap_entity).insert((
+        TilemapBundle {
+            grid_size,
+            map_type,
+            size,
+            storage: wall_storage,
+            texture: TilemapTexture::Single(asset_collection.wall_tiles.clone()),
+            tile_size,
+            ..default()
+        },
+        Name::new(format!("Wall Level {}", **current_level)),
+    ));
+
     cmds.entity(level_root).add_child(tilemap_entity);
+    cmds.entity(level_root).add_child(wall_tilemap_entity);
+}
+
+fn calculate_wall_index(pos: IVec2, level: &Level) -> u32 {
+    let level_grid = Grid::from_raw(level.size.as_ivec2(), level.tiles.clone());
+    let [n, ne, e, se, s, sw, w, nw]: [bool; 8] = CARDINALS
+        .iter()
+        .map(|dir| {
+            let npos = pos + *dir;
+            level_grid.get(npos).map_or(false, |tile| !tile.is_static())
+        })
+        .collect::<Vec<bool>>()
+        .try_into()
+        .unwrap();
+
+    //
+    let n_e = n && e;
+    let n_w = n && w;
+    let e_s = s && e;
+    let s_w = s && w;
+    let n_s = n && s;
+    let e_w = e && w;
+    let amount_diagonal: usize = [ne, se, sw, nw].iter().map(|x| *x as usize).sum();
+    let amount_direction: usize = [n, e, s, w].iter().map(|x| *x as usize).sum();
+
+    match amount_direction {
+        0 => 9,
+        1 => {
+            if n {
+                1
+            } else if e {
+                10
+            } else if s {
+                17
+            } else if w {
+                8
+            } else {
+                unreachable!()
+            }
+        }
+        2 => {
+            if n_e {
+                2
+            } else if e_s {
+                18
+            } else if s_w {
+                16
+            } else if n_w {
+                0
+            } else if n_s {
+                15
+            } else if e_w {
+                14
+            } else {
+                unreachable!()
+            }
+        }
+        3 => {
+            if !n {
+                22
+            } else if !e {
+                7
+            } else if !s {
+                6
+            } else if !w {
+                23
+            } else {
+                unreachable!()
+            }
+        }
+        4 => 31,
+        _ => unreachable!(),
+    }
 }
 
 fn reload_on_change(
@@ -202,6 +309,15 @@ pub enum TileKind {
     BallGoal,
     LampOff,
     LampOn,
+}
+
+impl TileKind {
+    pub fn is_static(&self) -> bool {
+        matches!(
+            self,
+            TileKind::Wall | TileKind::Rubber | TileKind::LampOff | TileKind::LampOn
+        )
+    }
 }
 
 impl From<u8> for TileKind {
@@ -281,24 +397,29 @@ impl AssetLoader for LevelLoader {
             reader.read_to_end(&mut bytes).await?;
             let string_levels = ron::de::from_bytes::<StringLevels>(&bytes)?;
 
-            let levels = Levels(
-                string_levels
-                    .0
-                    .iter()
-                    .map(|string_level| Level {
-                        tiles: string_level
-                            .tiles
-                            .replace(['\n', ' '], "")
-                            .as_bytes()
-                            .iter()
-                            .map(|byte| TileKind::from(*byte))
-                            .collect::<Vec<TileKind>>(),
+            let levels = string_levels
+                .0
+                .iter()
+                .map(|string_level| {
+                    let tiles = string_level
+                        .tiles
+                        .replace(['\n', ' '], "")
+                        .as_bytes()
+                        .iter()
+                        .map(|byte| TileKind::from(*byte))
+                        .collect::<Vec<TileKind>>()
+                        .chunks_exact(string_level.size.x as usize)
+                        .rev()
+                        .flat_map(|chunk| chunk.to_vec())
+                        .collect::<Vec<TileKind>>();
+                    Level {
+                        tiles,
                         size: string_level.size,
-                    })
-                    .collect::<Vec<Level>>(),
-            );
+                    }
+                })
+                .collect::<Vec<Level>>();
 
-            Ok(levels)
+            Ok(Levels(levels))
         })
     }
 

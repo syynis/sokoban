@@ -39,6 +39,7 @@ pub mod pause_menu;
 pub mod player;
 pub mod tile_behaviour;
 pub mod ui;
+pub mod util;
 
 pub struct SokobanPlugin;
 
@@ -109,6 +110,8 @@ pub enum GameState {
 pub struct AssetsCollection {
     #[asset(path = "tiles.png")]
     pub tiles: Handle<Image>,
+    #[asset(path = "wall.png")]
+    pub wall_tiles: Handle<Image>,
     #[asset(path = "player.png")]
     pub player: Handle<Image>,
     #[asset(path = "ball.png")]
