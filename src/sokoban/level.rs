@@ -134,6 +134,22 @@ fn spawn_level(
             ))
             .id();
 
+        // Tile is not walkable and above us is static tile
+        if !tile.is_static() && level.tiles[idx + level.size.x as usize].is_static() {
+            let sub_wall = cmds
+                .spawn((
+                    Name::new("Subwall"),
+                    TileBundle {
+                        position,
+                        texture_index: TileTextureIndex(14),
+                        tilemap_id: TilemapId(wall_tilemap_entity),
+                        ..default()
+                    },
+                ))
+                .id();
+            cmds.entity(wall_tilemap_entity).add_child(sub_wall);
+            wall_storage.set(&position, sub_wall);
+        }
         let pos = Pos(position);
         let mut tile_cmds = cmds.entity(tile_entity);
         if !matches!(tile, TileKind::Floor) {
@@ -197,6 +213,7 @@ fn spawn_level(
             storage: wall_storage,
             texture: TilemapTexture::Single(asset_collection.wall_tiles.clone()),
             tile_size,
+            transform: Transform::from_xyz(0., 2., 1.),
             ..default()
         },
         Name::new(format!("Wall Level {}", **current_level)),
@@ -353,17 +370,17 @@ impl From<u8> for TileKind {
 impl From<TileKind> for TileTextureIndex {
     fn from(value: TileKind) -> Self {
         let id = match value {
-            TileKind::Wall => 1,
+            TileKind::Wall => 0,
             TileKind::Floor => 0,
-            TileKind::Void => 3,
+            TileKind::Void => 2,
             TileKind::Ball => 0,
-            TileKind::Rubber => 4,
-            TileKind::Sand => 2,
+            TileKind::Rubber => 3,
+            TileKind::Sand => 1,
             TileKind::Player => 0,
             TileKind::Goal => 0,
             TileKind::BallGoal => 0,
-            TileKind::LampOff => 5,
-            TileKind::LampOn => 6,
+            TileKind::LampOff => 4,
+            TileKind::LampOn => 5,
         };
         Self(id)
     }
