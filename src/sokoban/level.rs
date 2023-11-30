@@ -16,7 +16,7 @@ use super::{
     level_select::CurrentLevel,
     player::SpawnPlayer,
     tile_behaviour::{Lamp, Rubber, Sand, SpawnGoal, Void},
-    util::CARDINALS,
+    util::DIRS,
     AssetsCollection, GameState, Pos, SokobanBlock,
 };
 
@@ -208,7 +208,7 @@ fn spawn_level(
 
 fn calculate_wall_index(pos: IVec2, level: &Level) -> (TileTextureIndex, TileFlip) {
     let level_grid = Grid::from_raw(level.size.as_ivec2(), level.tiles.clone());
-    let [n, ne, e, se, s, sw, w, nw]: [bool; 8] = CARDINALS
+    let [n, ne, e, se, s, sw, w, nw]: [bool; 8] = DIRS
         .iter()
         .map(|dir| {
             let npos = pos + *dir;
@@ -218,48 +218,73 @@ fn calculate_wall_index(pos: IVec2, level: &Level) -> (TileTextureIndex, TileFli
         .try_into()
         .unwrap();
 
-    let amount_diagonal: usize = [ne, se, sw, nw].iter().map(|x| *x as usize).sum();
-    let amount_direction: usize = [n, e, s, w].iter().map(|x| *x as usize).sum();
+    let diag_c: usize = [ne, se, sw, nw].iter().map(|x| *x as usize).sum();
+    let card_c: usize = [n, e, s, w].iter().map(|x| *x as usize).sum();
 
     let flip = TileFlip {
         x: e,
         y: s,
+        d: e || w,
+    };
+    let flip_inv = TileFlip {
+        x: e,
+        y: s,
+        d: !e || !w,
+    };
+    let two_diag = TileFlip {
+        x: ne,
+        y: sw,
+        d: (nw && sw) || (ne && se), // Both vertical
+    };
+    let zero_flip_diag = TileFlip {
+        x: ne || se,
+        y: sw || se,
         ..default()
     };
-
-    (
-        TileTextureIndex(match amount_direction {
-            0 => 8,
-            1 => {
-                if n || s {
-                    1
-                } else {
-                    // e || w
-                    7
-                }
-            }
+    let three_diag_flip = TileFlip {
+        x: e || n && se || s && ne,
+        y: s || e && sw || w && se,
+        d: e || w,
+    };
+    let (id, flip) = match card_c {
+        0 => match diag_c {
+            0 => (8, TileFlip::default()),
+            1 => (9, zero_flip_diag),
             2 => {
-                if n && s {
-                    12
-                } else if w && e {
-                    11
+                if (nw && se) || (ne && sw) {
+                    (11, two_diag)
                 } else {
-                    0
+                    (10, two_diag)
                 }
             }
-            3 => {
-                if !n || !s {
-                    4
-                } else {
-                    // !e || !w
-                    5
-                }
-            }
-            4 => 6,
+            3 => (12, zero_flip_diag),
+            4 => (13, TileFlip::default()),
             _ => unreachable!(),
-        }),
-        flip,
-    )
+        },
+        1 => {
+            if diag_c == 4 {
+                (2, flip)
+            } else if diag_c == 3 {
+                (1, three_diag_flip)
+            } else {
+                (0, flip)
+            }
+        }
+        2 => {
+            if (n && s) || (w && e) {
+                (5, flip_inv)
+            } else if (n && w && se) || (n && e && sw) || (s && w && ne) || (s && e && nw) {
+                (4, flip)
+            } else {
+                (3, flip)
+            }
+        }
+        3 => (6, flip_inv),
+        4 => (7, TileFlip::default()),
+        _ => unreachable!(),
+    };
+
+    (TileTextureIndex(id), flip)
 }
 
 fn reload_on_change(
