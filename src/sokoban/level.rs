@@ -111,13 +111,10 @@ fn spawn_level(
             y: idx as u32 / level.size.x,
         };
 
-        let texture_index = if matches!(tile, TileKind::Wall) {
-            TileTextureIndex(calculate_wall_index(
-                UVec2::from(position).as_ivec2(),
-                level,
-            ))
+        let (texture_index, flip) = if matches!(tile, TileKind::Wall) {
+            calculate_wall_index(UVec2::from(position).as_ivec2(), level)
         } else {
-            TileTextureIndex::from(*tile)
+            (TileTextureIndex::from(*tile), TileFlip::default())
         };
         let tilemap_id = if matches!(tile, TileKind::Wall) {
             TilemapId(wall_tilemap_entity)
@@ -131,6 +128,7 @@ fn spawn_level(
                     position,
                     texture_index,
                     tilemap_id,
+                    flip,
                     ..default()
                 },
             ))
@@ -208,7 +206,7 @@ fn spawn_level(
     cmds.entity(level_root).add_child(wall_tilemap_entity);
 }
 
-fn calculate_wall_index(pos: IVec2, level: &Level) -> u32 {
+fn calculate_wall_index(pos: IVec2, level: &Level) -> (TileTextureIndex, TileFlip) {
     let level_grid = Grid::from_raw(level.size.as_ivec2(), level.tiles.clone());
     let [n, ne, e, se, s, sw, w, nw]: [bool; 8] = CARDINALS
         .iter()
@@ -220,64 +218,48 @@ fn calculate_wall_index(pos: IVec2, level: &Level) -> u32 {
         .try_into()
         .unwrap();
 
-    //
-    let n_e = n && e;
-    let n_w = n && w;
-    let e_s = s && e;
-    let s_w = s && w;
-    let n_s = n && s;
-    let e_w = e && w;
     let amount_diagonal: usize = [ne, se, sw, nw].iter().map(|x| *x as usize).sum();
     let amount_direction: usize = [n, e, s, w].iter().map(|x| *x as usize).sum();
 
-    match amount_direction {
-        0 => 9,
-        1 => {
-            if n {
-                1
-            } else if e {
-                10
-            } else if s {
-                17
-            } else if w {
-                8
-            } else {
-                unreachable!()
+    let flip = TileFlip {
+        x: e,
+        y: s,
+        ..default()
+    };
+
+    (
+        TileTextureIndex(match amount_direction {
+            0 => 8,
+            1 => {
+                if n || s {
+                    1
+                } else {
+                    // e || w
+                    7
+                }
             }
-        }
-        2 => {
-            if n_e {
-                2
-            } else if e_s {
-                18
-            } else if s_w {
-                16
-            } else if n_w {
-                0
-            } else if n_s {
-                15
-            } else if e_w {
-                14
-            } else {
-                unreachable!()
+            2 => {
+                if n && s {
+                    12
+                } else if w && e {
+                    11
+                } else {
+                    0
+                }
             }
-        }
-        3 => {
-            if !n {
-                22
-            } else if !e {
-                7
-            } else if !s {
-                6
-            } else if !w {
-                23
-            } else {
-                unreachable!()
+            3 => {
+                if !n || !s {
+                    4
+                } else {
+                    // !e || !w
+                    5
+                }
             }
-        }
-        4 => 31,
-        _ => unreachable!(),
-    }
+            4 => 6,
+            _ => unreachable!(),
+        }),
+        flip,
+    )
 }
 
 fn reload_on_change(
